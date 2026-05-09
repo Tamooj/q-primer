@@ -80,7 +80,7 @@ Banks are plain JSON files in a documented schema. Anyone can contribute a bank 
 
 **GitHub Issues are the preferred channel.** Open an issue with your thoughts, questions, or concerns — tag it `pedagogy` if you'd like to flag it for the teaching/learning design discussion specifically.
 
-If you'd prefer to share feedback privately, reach out at **michael@paronomasia.org**.
+If you'd prefer to share feedback privately, reach out at **q-primer@highcentrality.com**.
 
 We will incorporate substantive feedback into the specification before building begins in earnest. Feedback received after the build starts will inform v2 priorities.
 
