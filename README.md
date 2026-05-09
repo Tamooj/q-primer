@@ -2,19 +2,19 @@
 
 **An AI-coached study tool for multiple-choice exam preparation.**
 
-Q-Primer is a free, open-source study tool that helps people prepare for multiple-choice examinations by combining quiz practice with an AI-powered coaching conversation. It runs entirely in a web browser — no software to install, no account to create. A student opens a single webpage, loads a set of practice questions, and starts studying.
+Q-Primer is a free, open-source study tool that helps people prepare for multiple-choice examinations by combining quiz practice with an AI-powered coaching conversation. It runs locally and entirely in your web browser — no software to install, no server required. A student opens a single webpage, loads a set of practice questions, and starts studying.
 
 ---
 
 ## Prerequisites
 
-**To use the AI coaching features, you need an Anthropic API key.**
+**To use the AI coaching features, you will need an Anthropic API key.**
 
-Q-Primer calls Anthropic's Claude API directly from your browser — there is no intermediary server. You provide your own API key, which means your usage is billed to your own Anthropic account. A free-tier API key is sufficient to get started; study sessions typically cost a few cents each.
+Q-Primer calls Anthropic's Claude API directly from your browser; there is no intermediary server. You provide your own API key, which means your usage is billed to your own Anthropic account. A free-tier API key is typically sufficient to get started; study sessions typically cost a few cents worth of token each.
 
-The quiz itself — loading a question bank, answering questions, and seeing correct/incorrect feedback — works without an API key. The AI coach explanation that appears after each answer is what requires one.
+The quiz itself — loading a question bank, answering questions, and seeing correct/incorrect feedback — works without an API key. The AI coach explanation that appears after each answer is what requires the API key.
 
-Instructions for obtaining an API key will be included in the full setup guide. The short version: create an account at [console.anthropic.com](https://console.anthropic.com), navigate to API Keys, and generate a key. The key is entered directly in the app and is never stored beyond your browser session.
+Instructions for obtaining an API key will be included in the full setup guide. The short version: create an account at [console.anthropic.com](https://console.anthropic.com), navigate to API Keys, and generate a key. Cut/Paste the key directly in the app; it is never stored beyond your browser session.
 
 ---
 
