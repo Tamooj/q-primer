@@ -421,6 +421,25 @@
     }
     .coach-response pre code { background: none; border: none; padding: 0; font-size: 0.82rem; line-height: 1.6; }
 
+    /* Follow-up question bubble */
+    .coach-question {
+      font-family: var(--font-sans);
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      background: rgba(74,158,255,0.06);
+      border-left: 2px solid var(--accent);
+      border-radius: 0 var(--radius) var(--radius) 0;
+      padding: 0.5rem 0.75rem;
+      margin-bottom: 0.75rem;
+    }
+
+    /* Divider between coach messages */
+    .coach-divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 1rem 0;
+    }
+
     /* Error state */
     .coach-error {
       font-family: var(--font-sans);
@@ -1185,6 +1204,342 @@
 
 
     /* ============================================================
+       MODULE: MarkdownRenderer
+       Converts a markdown string to safe HTML.
+       Pure function — no DOM access, no side effects.
+       Handles: paragraphs, **bold**, *italic*, `inline code`,
+       fenced code blocks, bullet lists, numbered lists, headings.
+       All text content is HTML-escaped before tag insertion.
+       ============================================================ */
+    const MarkdownRenderer = (() => {
+
+      /** Escape HTML special characters in a plain-text string. */
+      function esc(s) {
+        return s
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;');
+      }
+
+      /**
+       * Process inline markdown on an already-HTML-escaped string.
+       * Splits on code spans first so markdown inside `code` is left alone.
+       */
+      function inline(raw) {
+        // Split into [text, `code`, text, `code`, ...] segments
+        const segs = raw.split(/(`[^`\n]+`)/g);
+        return segs.map((seg, i) => {
+          if (i % 2 === 1) {
+            // Code span — escape content, wrap in <code>
+            return `<code>${esc(seg.slice(1, -1))}</code>`;
+          }
+          // Plain text — escape, then apply bold and italic
+          let s = esc(seg);
+          s = s.replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>');
+          s = s.replace(/\*([^*\n]+)\*/g,     '<em>$1</em>');
+          return s;
+        }).join('');
+      }
+
+      function render(text) {
+        if (!text) return '';
+
+        const lines  = text.split('\n');
+        const out    = [];
+
+        let inFence   = false;
+        let fenceLines = [];
+        let paraLines  = [];
+        let listItems  = [];
+        let listOrdered = false;
+
+        function flushPara() {
+          if (!paraLines.length) return;
+          out.push(`<p>${paraLines.map(inline).join(' ')}</p>`);
+          paraLines = [];
+        }
+
+        function flushList() {
+          if (!listItems.length) return;
+          const tag = listOrdered ? 'ol' : 'ul';
+          out.push(
+            `<${tag}>${listItems.map(item => `<li>${inline(item)}</li>`).join('')}</${tag}>`
+          );
+          listItems = [];
+        }
+
+        for (const line of lines) {
+
+          // ── Fenced code block ───────────────────────────────
+          if (line.startsWith('```')) {
+            if (!inFence) {
+              flushPara(); flushList();
+              inFence = true; fenceLines = [];
+            } else {
+              inFence = false;
+              out.push(`<pre><code>${fenceLines.map(esc).join('\n')}</code></pre>`);
+            }
+            continue;
+          }
+          if (inFence) { fenceLines.push(line); continue; }
+
+          // ── Blank line ──────────────────────────────────────
+          if (!line.trim()) { flushList(); flushPara(); continue; }
+
+          // ── Heading (map to h3–h5 to stay within document hierarchy) ──
+          const hm = line.match(/^(#{1,3})\s+(.+)/);
+          if (hm) {
+            flushPara(); flushList();
+            const level = hm[1].length + 2; // ## → h4, ### → h5
+            out.push(`<h${level}>${inline(hm[2])}</h${level}>`);
+            continue;
+          }
+
+          // ── Unordered list item ─────────────────────────────
+          const ul = line.match(/^[-*]\s+(.+)/);
+          if (ul) {
+            flushPara();
+            if (listItems.length && listOrdered) flushList();
+            listOrdered = false;
+            listItems.push(ul[1]);
+            continue;
+          }
+
+          // ── Ordered list item ───────────────────────────────
+          const ol = line.match(/^\d+\.\s+(.+)/);
+          if (ol) {
+            flushPara();
+            if (listItems.length && !listOrdered) flushList();
+            listOrdered = true;
+            listItems.push(ol[1]);
+            continue;
+          }
+
+          // ── Regular text ────────────────────────────────────
+          flushList();
+          paraLines.push(line);
+        }
+
+        // Flush any remaining state
+        flushList();
+        flushPara();
+        if (inFence && fenceLines.length) {
+          out.push(`<pre><code>${fenceLines.map(esc).join('\n')}</code></pre>`);
+        }
+
+        return out.join('\n');
+      }
+
+      return { render };
+    })();
+
+
+    /* ============================================================
+       MODULE: PromptBuilder
+       Constructs system prompt and per-question user messages.
+       Pure functions — no DOM access, no API calls.
+       ============================================================ */
+    const PromptBuilder = (() => {
+
+      /**
+       * Build the system prompt from bank metadata and student profile.
+       */
+      function buildSystem(bank, student) {
+        const parts = [
+          `You are an expert exam coach helping a student prepare for the ${bank.meta.title} examination.`,
+        ];
+
+        if (bank.meta.description) {
+          parts.push(bank.meta.description);
+        }
+
+        if (student && student.profile && student.profile.trim()) {
+          parts.push(`Student background: ${student.profile.trim()}`);
+        }
+
+        parts.push(
+          `Your role is to explain why the correct answer is right and help the student build genuine understanding — not just memorize answers.
+
+Guidelines:
+- Be concise but thorough. Aim for 150–250 words on the initial explanation.
+- Lead immediately with the core concept. Do not open with praise or filler phrases.
+- For calculations, show the key formula and steps.
+- For rules or regulations, explain the underlying principle, not just the rule number.
+- When the student chose incorrectly, be direct about what misconception the distractor exploits.
+- Use plain language. Define technical terms on first use.
+- Use markdown: **bold** for key terms, \`code\` for values, formulas, and units.`
+        );
+
+        return parts.join('\n\n');
+      }
+
+      /**
+       * Build the user message for an initial question explanation.
+       */
+      function buildExplainMessage(question, chosenKey) {
+        const isCorrect = chosenKey === question.correct;
+        const lines = [];
+
+        lines.push(`Question: ${question.question}`);
+
+        if (question.figure) {
+          lines.push(`Figure: ${question.figure.alt}`);
+        }
+
+        lines.push('\nAnswer choices:');
+        for (const key of ['A', 'B', 'C', 'D']) {
+          lines.push(`  ${key}: ${question.answers[key]}`);
+        }
+
+        lines.push(`\nCorrect answer: ${question.correct} — ${question.answers[question.correct]}`);
+        lines.push(
+          `Student chose: ${chosenKey} — ${question.answers[chosenKey]} ` +
+          `(${isCorrect ? 'correct ✓' : 'incorrect ✗'})`
+        );
+
+        if (question.annotation && question.annotation.content) {
+          lines.push(`\nAnnotation: ${question.annotation.content}`);
+        }
+
+        lines.push(
+          `\nExplain why ${question.correct} is correct` +
+          (!isCorrect
+            ? ` and address why ${chosenKey} is a plausible but wrong choice.`
+            : '.')
+        );
+
+        return lines.join('\n');
+      }
+
+      return { buildSystem, buildExplainMessage };
+    })();
+
+
+    /* ============================================================
+       MODULE: CoachAPI
+       Calls the Anthropic Messages API. Manages per-question
+       conversation history for follow-up support.
+       Depends on: Storage, AppState, SessionState,
+                   PromptBuilder, MarkdownRenderer, UI.
+       ============================================================ */
+    const CoachAPI = (() => {
+
+      const MODEL      = 'claude-3-5-haiku-20241022';
+      const MAX_TOKENS = 1024;
+
+      let _history         = [];   // messages array for current question
+      let _currentQuestion = null;
+      let _busy            = false;
+
+      /** Clear conversation state for a new question. */
+      function reset() {
+        _history         = [];
+        _currentQuestion = null;
+        _busy            = false;
+      }
+
+      /** POST to the Anthropic Messages API; throws on error. */
+      async function _call(messages) {
+        const key = Storage.getApiKey();
+        if (!key) throw new Error('No API key configured.');
+
+        const res = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: {
+            'x-api-key':                              key,
+            'anthropic-version':                      '2023-06-01',
+            'content-type':                           'application/json',
+            'anthropic-dangerous-direct-browser-access': 'true',
+          },
+          body: JSON.stringify({
+            model:      MODEL,
+            max_tokens: MAX_TOKENS,
+            system:     PromptBuilder.buildSystem(
+                          AppState.getBank(),
+                          SessionState.getState()?.student
+                        ),
+            messages,
+          }),
+        });
+
+        if (!res.ok) {
+          let msg = res.statusText;
+          try { const b = await res.json(); msg = b.error?.message || msg; } catch {}
+          if (res.status === 401) throw new Error('Invalid API key. Check the key you entered and try again.');
+          if (res.status === 429) throw new Error('Rate limit reached. Wait a moment, then try your question again.');
+          throw new Error(`API error ${res.status}: ${msg}`);
+        }
+
+        return res.json();
+      }
+
+      /** Accumulate token usage into the session and update the display. */
+      function _recordUsage(usage) {
+        SessionState.updateTokenUsage(usage.input_tokens, usage.output_tokens);
+        const t = SessionState.getSession().token_usage;
+        UI.updateTokenUsage(t.session_input, t.session_output);
+      }
+
+      /**
+       * Request an explanation after the student submits an answer.
+       * Called automatically from the submit handler — silent no-op if no key.
+       */
+      async function explain(question, chosenKey) {
+        if (!Storage.getApiKey() || _busy) return;
+        _busy            = true;
+        _currentQuestion = question;
+        _history         = [];
+
+        UI.showCoachLoading();
+
+        const userMsg = PromptBuilder.buildExplainMessage(question, chosenKey);
+        _history.push({ role: 'user', content: userMsg });
+
+        try {
+          const data = await _call(_history);
+          const text = data.content[0].text;
+          _history.push({ role: 'assistant', content: text });
+          _recordUsage(data.usage);
+          UI.showCoachResponse(MarkdownRenderer.render(text));
+        } catch (err) {
+          UI.showCoachError(err.message);
+        } finally {
+          _busy = false;
+        }
+      }
+
+      /**
+       * Send a follow-up question in the context of the current question.
+       * Appends to the ongoing conversation history.
+       */
+      async function followUp(text) {
+        if (!text.trim() || _busy || !_currentQuestion) return;
+        _busy = true;
+
+        const trimmed = text.trim();
+        _history.push({ role: 'user', content: trimmed });
+
+        UI.appendCoachMessage('user', trimmed);
+        UI.showFollowUpLoading();
+
+        try {
+          const data  = await _call(_history);
+          const reply = data.content[0].text;
+          _history.push({ role: 'assistant', content: reply });
+          _recordUsage(data.usage);
+          UI.appendCoachMessage('assistant', MarkdownRenderer.render(reply));
+        } catch (err) {
+          UI.appendCoachMessage('error', err.message);
+        } finally {
+          _busy = false;
+        }
+      }
+
+      return { explain, followUp, reset };
+    })();
+
+
+    /* ============================================================
        MODULE: UI
        All DOM reads and writes live here.
        Other modules have zero DOM access.
@@ -1637,6 +1992,7 @@
 
       /** Reset coach panel to its idle placeholder state. */
       function resetCoachPanel() {
+        if (typeof CoachAPI !== 'undefined') CoachAPI.reset();
         el.coachContent.innerHTML = '';
         const p = document.createElement('div');
         p.className   = 'coach-placeholder';
@@ -1645,6 +2001,46 @@
         el.followupInput.value      = '';
         el.followupInput.disabled   = true;
         el.followupSendBtn.disabled = true;
+      }
+
+      /**
+       * Disable the follow-up send button while a follow-up is in flight.
+       * Does not replace coach content — previous response stays visible.
+       */
+      function showFollowUpLoading() {
+        el.followupInput.disabled   = true;
+        el.followupSendBtn.disabled = true;
+      }
+
+      /**
+       * Append a message block to the coach content area.
+       * role: 'user' | 'assistant' | 'error'
+       * content: plain text for user/error; rendered HTML for assistant
+       */
+      function appendCoachMessage(role, content) {
+        const hr = document.createElement('hr');
+        hr.className = 'coach-divider';
+        el.coachContent.appendChild(hr);
+
+        const div = document.createElement('div');
+        if (role === 'user') {
+          div.className   = 'coach-question';
+          div.textContent = content;
+        } else if (role === 'assistant') {
+          div.className = 'coach-response';
+          div.innerHTML = content; // sanitized MarkdownRenderer output only
+        } else {
+          div.className   = 'coach-error';
+          div.textContent = content;
+        }
+        el.coachContent.appendChild(div);
+        el.coachContent.scrollTop = el.coachContent.scrollHeight;
+
+        // Re-enable follow-up after response or error
+        if (role === 'assistant' || role === 'error') {
+          el.followupInput.disabled   = false;
+          el.followupSendBtn.disabled = false;
+        }
       }
 
       // ── Init ─────────────────────────────────────────────────────
@@ -1670,6 +2066,20 @@
           refreshStartButton();
         });
 
+        // Follow-up dialog
+        el.followupSendBtn.addEventListener('click', () => {
+          const text = el.followupInput.value.trim();
+          if (!text) return;
+          el.followupInput.value = '';
+          CoachAPI.followUp(text);
+        });
+        el.followupInput.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            el.followupSendBtn.click();
+          }
+        });
+
         refreshStartButton();
       }
 
@@ -1685,6 +2095,8 @@
         showCoachLoading,
         showCoachResponse,
         showCoachError,
+        showFollowUpLoading,
+        appendCoachMessage,
         updateTokenUsage,
       };
     })();

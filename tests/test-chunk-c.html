@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Q-Primer — Chunk C Tests</title>
+  <style>
+    :root {
+      --pass: #22c55e; --fail: #ef4444;
+      --bg: #0f1117; --surface: #1a1d27; --border: #2e3347;
+      --text: #e8eaf0; --text-dim: #8b90a7; --accent: #4a9eff;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: 'IBM Plex Mono', monospace; font-size: 13px; line-height: 1.6; padding: 2rem; }
+    h1   { font-size: 1rem; color: var(--accent); letter-spacing: 0.05em; margin-bottom: 0.25rem; }
+    .subtitle { color: var(--text-dim); font-size: 0.78rem; margin-bottom: 1.5rem; }
+    #summary { display: flex; gap: 2rem; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 0.75rem 1.25rem; margin-bottom: 1.5rem; font-size: 0.85rem; }
+    .summary-pass { color: var(--pass); font-weight: 600; }
+    .summary-fail { color: var(--fail); font-weight: 600; }
+    .summary-total { color: var(--text-dim); }
+    .suite { margin-bottom: 1.5rem; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+    .suite-header { padding: 0.5rem 1rem; background: rgba(255,255,255,0.03); border-bottom: 1px solid var(--border); font-size: 0.72rem; font-weight: 600; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.08em; }
+    .test-row { display: flex; align-items: flex-start; gap: 0.75rem; padding: 0.45rem 1rem; border-bottom: 1px solid var(--border); font-size: 0.8rem; }
+    .test-row:last-child { border-bottom: none; }
+    .test-status { flex-shrink: 0; font-weight: 600; width: 3rem; }
+    .test-status.pass { color: var(--pass); }
+    .test-status.fail { color: var(--fail); }
+    .test-desc { flex: 1; }
+    .test-detail { margin-top: 0.2rem; font-size: 0.72rem; color: var(--fail); font-style: italic; }
+    #loading { color: var(--text-dim); font-style: italic; margin-top: 1rem; }
+  </style>
+</head>
+<body>
+
+<h1>Q-PRIMER — CHUNK C TEST SUITE</h1>
+<div class="subtitle">MarkdownRenderer · PromptBuilder · CoachAPI (fetch-mocked)</div>
+
+<div id="summary">
+  <span class="summary-pass" id="pass-count">…</span>
+  <span class="summary-fail" id="fail-count">…</span>
+  <span class="summary-total" id="total-count"></span>
+</div>
+
+<div id="results"></div>
+<div id="loading">Running async tests…</div>
+
+<script>
+'use strict';
+
+/* ----------------------------------------------------------------
+   MarkdownRenderer — exact copy from app/q-primer.html
+   ---------------------------------------------------------------- */
+const MarkdownRenderer = (() => {
+  function esc(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function inline(raw) {
+    const segs = raw.split(/(`[^`\n]+`)/g);
+    return segs.map((seg, i) => {
+      if (i % 2 === 1) return `<code>${esc(seg.slice(1,-1))}</code>`;
+      let s = esc(seg);
+      s = s.replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>');
+      s = s.replace(/\*([^*\n]+)\*/g,     '<em>$1</em>');
+      return s;
+    }).join('');
+  }
+
+  function render(text) {
+    if (!text) return '';
+    const lines = text.split('\n');
+    const out = [];
+    let inFence = false, fenceLines = [], paraLines = [], listItems = [], listOrdered = false;
+
+    function flushPara() {
+      if (!paraLines.length) return;
+      out.push(`<p>${paraLines.map(inline).join(' ')}</p>`);
+      paraLines = [];
+    }
+    function flushList() {
+      if (!listItems.length) return;
+      const tag = listOrdered ? 'ol' : 'ul';
+      out.push(`<${tag}>${listItems.map(i => `<li>${inline(i)}</li>`).join('')}</${tag}>`);
+      listItems = [];
+    }
+
+    for (const line of lines) {
+      if (line.startsWith('```')) {
+        if (!inFence) { flushPara(); flushList(); inFence = true; fenceLines = []; }
+        else { inFence = false; out.push(`<pre><code>${fenceLines.map(esc).join('\n')}</code></pre>`); }
+        continue;
+      }
+      if (inFence) { fenceLines.push(line); continue; }
+      if (!line.trim()) { flushList(); flushPara(); continue; }
+      const hm = line.match(/^(#{1,3})\s+(.+)/);
+      if (hm) { flushPara(); flushList(); const l = hm[1].length+2; out.push(`<h${l}>${inline(hm[2])}</h${l}>`); continue; }
+      const ul = line.match(/^[-*]\s+(.+)/);
+      if (ul) { flushPara(); if (listItems.length && listOrdered) flushList(); listOrdered = false; listItems.push(ul[1]); continue; }
+      const ol = line.match(/^\d+\.\s+(.+)/);
+      if (ol) { flushPara(); if (listItems.length && !listOrdered) flushList(); listOrdered = true; listItems.push(ol[1]); continue; }
+      flushList();
+      paraLines.push(line);
+    }
+    flushList(); flushPara();
+    if (inFence && fenceLines.length) out.push(`<pre><code>${fenceLines.map(esc).join('\n')}</code></pre>`);
+    return out.join('\n');
+  }
+
+  return { render };
+})();
+
+
+/* ----------------------------------------------------------------
+   PromptBuilder — exact copy from app/q-primer.html
+   ---------------------------------------------------------------- */
+const PromptBuilder = (() => {
+  function buildSystem(bank, student) {
+    const parts = [
+      `You are an expert exam coach helping a student prepare for the ${bank.meta.title} examination.`,
+    ];
+    if (bank.meta.description) parts.push(bank.meta.description);
+    if (student && student.profile && student.profile.trim()) {
+      parts.push(`Student background: ${student.profile.trim()}`);
+    }
+    parts.push(
+      `Your role is to explain why the correct answer is right and help the student build genuine understanding — not just memorize answers.
+
+Guidelines:
+- Be concise but thorough. Aim for 150–250 words on the initial explanation.
+- Lead immediately with the core concept. Do not open with praise or filler phrases.
+- For calculations, show the key formula and steps.
+- For rules or regulations, explain the underlying principle, not just the rule number.
+- When the student chose incorrectly, be direct about what misconception the distractor exploits.
+- Use plain language. Define technical terms on first use.
+- Use markdown: **bold** for key terms, \`code\` for values, formulas, and units.`
+    );
+    return parts.join('\n\n');
+  }
+
+  function buildExplainMessage(question, chosenKey) {
+    const isCorrect = chosenKey === question.correct;
+    const lines = [];
+    lines.push(`Question: ${question.question}`);
+    if (question.figure) lines.push(`Figure: ${question.figure.alt}`);
+    lines.push('\nAnswer choices:');
+    for (const key of ['A','B','C','D']) lines.push(`  ${key}: ${question.answers[key]}`);
+    lines.push(`\nCorrect answer: ${question.correct} — ${question.answers[question.correct]}`);
+    lines.push(`Student chose: ${chosenKey} — ${question.answers[chosenKey]} (${isCorrect ? 'correct ✓' : 'incorrect ✗'})`);
+    if (question.annotation && question.annotation.content) {
+      lines.push(`\nAnnotation: ${question.annotation.content}`);
+    }
+    lines.push(
+      `\nExplain why ${question.correct} is correct` +
+      (!isCorrect ? ` and address why ${chosenKey} is a plausible but wrong choice.` : '.')
+    );
+    return lines.join('\n');
+  }
+
+  return { buildSystem, buildExplainMessage };
+})();
+
+
+/* ----------------------------------------------------------------
+   Minimal stubs for CoachAPI tests
+   ---------------------------------------------------------------- */
+const _store = {};
+const Storage = {
+  getApiKey()  { return _store.apikey || ''; },
+  setApiKey(k) { _store.apikey = k; },
+  getSession() { return _store.session ? JSON.parse(_store.session) : null; },
+  setSession(o){ _store.session = JSON.stringify(o); },
+};
+
+const _uiCalls = { loading:0, responses:[], errors:[], followUpLoading:0, appended:[] };
+const UI = {
+  showCoachLoading()          { _uiCalls.loading++; },
+  showCoachResponse(html)     { _uiCalls.responses.push(html); },
+  showCoachError(msg)         { _uiCalls.errors.push(msg); },
+  showFollowUpLoading()       { _uiCalls.followUpLoading++; },
+  appendCoachMessage(r, c)    { _uiCalls.appended.push({ role: r, content: c }); },
+  updateTokenUsage()          {},
+};
+
+const SessionState = {
+  _state: null,
+  init(id) {
+    this._state = { session: { bank_id: id, token_usage: { session_input:0, session_output:0, session_total:0 } } };
+  },
+  getState()   { return this._state; },
+  getSession() { return this._state?.session || null; },
+  updateTokenUsage(inp, out) {
+    const t = this._state.session.token_usage;
+    t.session_input  += inp;
+    t.session_output += out;
+    t.session_total  += inp + out;
+  },
+};
+
+const AppState = {
+  _bank: null,
+  getBank() { return this._bank; },
+  setBank(b){ this._bank = b; },
+};
+
+/* CoachAPI — exact copy from app/q-primer.html */
+const CoachAPI = (() => {
+  const MODEL = 'claude-3-5-haiku-20241022';
+  const MAX_TOKENS = 1024;
+  let _history = [], _currentQuestion = null, _busy = false;
+
+  function reset() { _history = []; _currentQuestion = null; _busy = false; }
+
+  async function _call(messages) {
+    const key = Storage.getApiKey();
+    if (!key) throw new Error('No API key configured.');
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'x-api-key': key, 'anthropic-version': '2023-06-01',
+        'content-type': 'application/json',
+        'anthropic-dangerous-direct-browser-access': 'true',
+      },
+      body: JSON.stringify({ model: MODEL, max_tokens: MAX_TOKENS,
+        system: PromptBuilder.buildSystem(AppState.getBank(), SessionState.getState()?.student),
+        messages }),
+    });
+    if (!res.ok) {
+      let msg = res.statusText;
+      try { const b = await res.json(); msg = b.error?.message || msg; } catch {}
+      if (res.status === 401) throw new Error('Invalid API key. Check the key you entered and try again.');
+      if (res.status === 429) throw new Error('Rate limit reached. Wait a moment, then try your question again.');
+      throw new Error(`API error ${res.status}: ${msg}`);
+    }
+    return res.json();
+  }
+
+  function _recordUsage(usage) {
+    SessionState.updateTokenUsage(usage.input_tokens, usage.output_tokens);
+  }
+
+  async function explain(question, chosenKey) {
+    if (!Storage.getApiKey() || _busy) return;
+    _busy = true; _currentQuestion = question; _history = [];
+    UI.showCoachLoading();
+    const userMsg = PromptBuilder.buildExplainMessage(question, chosenKey);
+    _history.push({ role: 'user', content: userMsg });
+    try {
+      const data = await _call(_history);
+      const text = data.content[0].text;
+      _history.push({ role: 'assistant', content: text });
+      _recordUsage(data.usage);
+      UI.showCoachResponse(MarkdownRenderer.render(text));
+    } catch (err) { UI.showCoachError(err.message); }
+    finally { _busy = false; }
+  }
+
+  async function followUp(text) {
+    if (!text.trim() || _busy || !_currentQuestion) return;
+    _busy = true;
+    const trimmed = text.trim();
+    _history.push({ role: 'user', content: trimmed });
+    UI.appendCoachMessage('user', trimmed);
+    UI.showFollowUpLoading();
+    try {
+      const data  = await _call(_history);
+      const reply = data.content[0].text;
+      _history.push({ role: 'assistant', content: reply });
+      _recordUsage(data.usage);
+      UI.appendCoachMessage('assistant', MarkdownRenderer.render(reply));
+    } catch (err) { UI.appendCoachMessage('error', err.message); }
+    finally { _busy = false; }
+  }
+
+  return { explain, followUp, reset };
+})();
+
+
+/* ----------------------------------------------------------------
+   Test fixtures
+   ---------------------------------------------------------------- */
+function makeBank() {
+  return {
+    meta: { title: 'Ham Radio General Class', pool_id: 'test-v1', version: '1.0',
+            description: 'Test bank for unit testing.' },
+    questions: [],
+  };
+}
+
+function makeQuestion(overrides = {}) {
+  return {
+    id: 'G5B01',
+    question: 'What dB change represents a factor of two increase in power?',
+    answers: { A: '2 dB', B: '3 dB', C: '6 dB', D: '9 dB' },
+    correct: 'B',
+    annotation: null,
+    ...overrides,
+  };
+}
+
+function mockFetch(status, body) {
+  window.fetch = async () => ({
+    ok: status >= 200 && status < 300,
+    status,
+    statusText: status === 200 ? 'OK' : 'Error',
+    json: async () => body,
+  });
+}
+
+function resetUI() {
+  _uiCalls.loading = 0;
+  _uiCalls.responses.length = 0;
+  _uiCalls.errors.length = 0;
+  _uiCalls.followUpLoading = 0;
+  _uiCalls.appended.length = 0;
+}
+
+function resetCoach() {
+  CoachAPI.reset();
+  resetUI();
+}
+
+
+/* ----------------------------------------------------------------
+   Runner
+   ---------------------------------------------------------------- */
+let _passed = 0, _failed = 0;
+const _suites = [];
+let _cur = null;
+
+function suite(name) { _cur = { name, tests: [] }; _suites.push(_cur); }
+
+async function test(desc, fn) {
+  try {
+    await fn();
+    _passed++;
+    _cur.tests.push({ desc, status: 'pass', detail: null });
+  } catch(e) {
+    _failed++;
+    _cur.tests.push({ desc, status: 'fail', detail: e.message });
+  }
+}
+
+const assert = {
+  eq(a, b)          { if (a !== b)   throw new Error(`Expected ${JSON.stringify(b)}, got ${JSON.stringify(a)}`); },
+  true(v)           { if (v !== true)  throw new Error(`Expected true, got ${JSON.stringify(v)}`); },
+  false(v)          { if (v !== false) throw new Error(`Expected false, got ${JSON.stringify(v)}`); },
+  includes(s, sub)  { if (!String(s).includes(sub)) throw new Error(`Expected "${s}" to include "${sub}"`); },
+  notIncludes(s, x) { if (String(s).includes(x))    throw new Error(`Did not expect "${s}" to include "${x}"`); },
+  gt(a, b)          { if (!(a > b))   throw new Error(`Expected ${a} > ${b}`); },
+  len(a, n)         { if (a.length !== n) throw new Error(`Expected length ${n}, got ${a.length}`); },
+};
+
+function render() {
+  document.getElementById('loading').remove();
+  const container = document.getElementById('results');
+  for (const s of _suites) {
+    const suiteEl = document.createElement('div');
+    suiteEl.className = 'suite';
+    const hdr = document.createElement('div');
+    hdr.className = 'suite-header';
+    hdr.textContent = s.name;
+    suiteEl.appendChild(hdr);
+    for (const t of s.tests) {
+      const row = document.createElement('div');
+      row.className = 'test-row';
+      const status = document.createElement('span');
+      status.className = `test-status ${t.status}`;
+      status.textContent = t.status === 'pass' ? 'PASS' : 'FAIL';
+      const desc = document.createElement('div');
+      desc.className = 'test-desc';
+      desc.appendChild(document.createTextNode(t.desc));
+      if (t.detail) {
+        const d = document.createElement('div');
+        d.className = 'test-detail';
+        d.textContent = t.detail;
+        desc.appendChild(d);
+      }
+      row.appendChild(status);
+      row.appendChild(desc);
+      suiteEl.appendChild(row);
+    }
+    container.appendChild(suiteEl);
+  }
+  const total = _passed + _failed;
+  document.getElementById('pass-count').textContent  = `${_passed} passed`;
+  document.getElementById('fail-count').textContent  = `${_failed} failed`;
+  document.getElementById('total-count').textContent = `${total} total`;
+  document.title = `${_failed > 0 ? '✗' : '✓'} Chunk C Tests (${_passed}/${total})`;
+}
+
+
+/* ================================================================
+   SUITE 1: MarkdownRenderer
+   ================================================================ */
+async function runTests() {
+
+suite('MarkdownRenderer — block elements');
+
+test('plain text becomes a paragraph', () => {
+  assert.includes(MarkdownRenderer.render('Hello world'), '<p>Hello world</p>');
+});
+
+test('two paragraphs separated by blank line', () => {
+  const out = MarkdownRenderer.render('First\n\nSecond');
+  assert.includes(out, '<p>First</p>');
+  assert.includes(out, '<p>Second</p>');
+});
+
+test('bullet list renders as ul/li', () => {
+  const out = MarkdownRenderer.render('- Alpha\n- Beta');
+  assert.includes(out, '<ul>');
+  assert.includes(out, '<li>Alpha</li>');
+  assert.includes(out, '<li>Beta</li>');
+});
+
+test('numbered list renders as ol/li', () => {
+  const out = MarkdownRenderer.render('1. First\n2. Second');
+  assert.includes(out, '<ol>');
+  assert.includes(out, '<li>First</li>');
+});
+
+test('fenced code block renders as pre/code', () => {
+  const out = MarkdownRenderer.render('```\nP = V^2 / R\n```');
+  assert.includes(out, '<pre><code>');
+  assert.includes(out, 'P = V^2 / R');
+});
+
+test('heading ## renders as h4', () => {
+  assert.includes(MarkdownRenderer.render('## Key Concept'), '<h4>Key Concept</h4>');
+});
+
+test('empty string returns empty string', () => {
+  assert.eq(MarkdownRenderer.render(''), '');
+});
+
+
+/* ── Suite 2: MarkdownRenderer — inline elements ────────────── */
+suite('MarkdownRenderer — inline elements');
+
+test('**bold** renders as strong', () => {
+  assert.includes(MarkdownRenderer.render('A **key** term'), '<strong>key</strong>');
+});
+
+test('*italic* renders as em', () => {
+  assert.includes(MarkdownRenderer.render('An *important* point'), '<em>important</em>');
+});
+
+test('`inline code` renders as code', () => {
+  assert.includes(MarkdownRenderer.render('Use `P = V²/R`'), '<code>P = V²/R</code>');
+});
+
+test('HTML in plain text is escaped', () => {
+  const out = MarkdownRenderer.render('<script>alert(1)</script>');
+  assert.notIncludes(out, '<script>');
+  assert.includes(out, '&lt;script&gt;');
+});
+
+test('HTML inside code span is escaped', () => {
+  const out = MarkdownRenderer.render('`<b>not bold</b>`');
+  assert.includes(out, '&lt;b&gt;');
+  assert.notIncludes(out, '<b>');
+});
+
+test('bold inside code span is not processed', () => {
+  const out = MarkdownRenderer.render('`**not bold**`');
+  assert.notIncludes(out, '<strong>');
+  assert.includes(out, '**not bold**');
+});
+
+test('bold and code can coexist in same paragraph', () => {
+  const out = MarkdownRenderer.render('Use **P = V²/R** or `P = I²R`');
+  assert.includes(out, '<strong>P = V²/R</strong>');
+  assert.includes(out, '<code>P = I²R</code>');
+});
+
+
+/* ── Suite 3: PromptBuilder ─────────────────────────────────── */
+suite('PromptBuilder — buildSystem');
+
+test('system prompt includes bank title', () => {
+  const sys = PromptBuilder.buildSystem(makeBank(), null);
+  assert.includes(sys, 'Ham Radio General Class');
+});
+
+test('system prompt includes bank description', () => {
+  const sys = PromptBuilder.buildSystem(makeBank(), null);
+  assert.includes(sys, 'Test bank for unit testing.');
+});
+
+test('system prompt includes student profile when present', () => {
+  const sys = PromptBuilder.buildSystem(makeBank(), { profile: 'EE with 10 years RF' });
+  assert.includes(sys, 'EE with 10 years RF');
+});
+
+test('system prompt omits student section when profile is empty', () => {
+  const sys = PromptBuilder.buildSystem(makeBank(), { profile: '' });
+  assert.notIncludes(sys, 'Student background:');
+});
+
+test('system prompt omits student section when student is null', () => {
+  const sys = PromptBuilder.buildSystem(makeBank(), null);
+  assert.notIncludes(sys, 'Student background:');
+});
+
+test('system prompt contains coaching guidelines', () => {
+  const sys = PromptBuilder.buildSystem(makeBank(), null);
+  assert.includes(sys, 'Guidelines:');
+});
+
+
+/* ── Suite 4: PromptBuilder — buildExplainMessage ───────────── */
+suite('PromptBuilder — buildExplainMessage');
+
+test('message includes question text', () => {
+  const msg = PromptBuilder.buildExplainMessage(makeQuestion(), 'B');
+  assert.includes(msg, 'What dB change represents');
+});
+
+test('message includes all four answer choices', () => {
+  const msg = PromptBuilder.buildExplainMessage(makeQuestion(), 'B');
+  assert.includes(msg, 'A: 2 dB');
+  assert.includes(msg, 'B: 3 dB');
+  assert.includes(msg, 'C: 6 dB');
+  assert.includes(msg, 'D: 9 dB');
+});
+
+test('correct answer marked when student is correct', () => {
+  const msg = PromptBuilder.buildExplainMessage(makeQuestion(), 'B');
+  assert.includes(msg, 'correct ✓');
+  assert.notIncludes(msg, 'incorrect ✗');
+});
+
+test('incorrect marked when student chose wrong', () => {
+  const msg = PromptBuilder.buildExplainMessage(makeQuestion(), 'A');
+  assert.includes(msg, 'incorrect ✗');
+});
+
+test('message asks to address wrong choice when student was incorrect', () => {
+  const msg = PromptBuilder.buildExplainMessage(makeQuestion(), 'C');
+  assert.includes(msg, 'address why C is a plausible but wrong choice');
+});
+
+test('message does not ask about wrong choice when student was correct', () => {
+  const msg = PromptBuilder.buildExplainMessage(makeQuestion(), 'B');
+  assert.notIncludes(msg, 'plausible but wrong');
+});
+
+test('figure alt text included when figure present', () => {
+  const q = makeQuestion({ figure: { file: 'G7-1.png', alt: 'Circuit schematic' } });
+  const msg = PromptBuilder.buildExplainMessage(q, 'B');
+  assert.includes(msg, 'Circuit schematic');
+});
+
+test('no figure section when figure absent', () => {
+  const msg = PromptBuilder.buildExplainMessage(makeQuestion(), 'B');
+  assert.notIncludes(msg, 'Figure:');
+});
+
+test('annotation content included when present', () => {
+  const q = makeQuestion({ annotation: { type: 'concept', content: 'Key insight here.' } });
+  const msg = PromptBuilder.buildExplainMessage(q, 'B');
+  assert.includes(msg, 'Key insight here.');
+});
+
+test('no annotation section when annotation is null', () => {
+  const msg = PromptBuilder.buildExplainMessage(makeQuestion(), 'B');
+  assert.notIncludes(msg, 'Annotation:');
+});
+
+
+/* ── Suite 5: CoachAPI — explain() ─────────────────────────── */
+suite('CoachAPI — explain()');
+
+test('explain() is a silent no-op when no API key', async () => {
+  resetCoach();
+  _store.apikey = '';
+  AppState.setBank(makeBank());
+  SessionState.init('test-v1');
+  await CoachAPI.explain(makeQuestion(), 'B');
+  assert.eq(_uiCalls.loading, 0);
+  assert.len(_uiCalls.responses, 0);
+});
+
+test('explain() calls showCoachLoading', async () => {
+  resetCoach();
+  _store.apikey = 'sk-test';
+  AppState.setBank(makeBank());
+  SessionState.init('test-v1');
+  mockFetch(200, { content:[{text:'Good explanation.'}], usage:{input_tokens:100,output_tokens:50} });
+  await CoachAPI.explain(makeQuestion(), 'B');
+  assert.gt(_uiCalls.loading, 0);
+});
+
+test('explain() calls showCoachResponse with rendered markdown on success', async () => {
+  resetCoach();
+  _store.apikey = 'sk-test';
+  AppState.setBank(makeBank());
+  SessionState.init('test-v1');
+  mockFetch(200, { content:[{text:'The answer is **3 dB**.'}], usage:{input_tokens:100,output_tokens:20} });
+  await CoachAPI.explain(makeQuestion(), 'B');
+  assert.len(_uiCalls.responses, 1);
+  assert.includes(_uiCalls.responses[0], '<strong>3 dB</strong>');
+});
+
+test('explain() accumulates token usage', async () => {
+  resetCoach();
+  _store.apikey = 'sk-test';
+  AppState.setBank(makeBank());
+  SessionState.init('test-v1');
+  mockFetch(200, { content:[{text:'Explanation.'}], usage:{input_tokens:200,output_tokens:80} });
+  await CoachAPI.explain(makeQuestion(), 'B');
+  const t = SessionState.getSession().token_usage;
+  assert.eq(t.session_input,  200);
+  assert.eq(t.session_output,  80);
+  assert.eq(t.session_total,  280);
+});
+
+test('explain() calls showCoachError on 401', async () => {
+  resetCoach();
+  _store.apikey = 'sk-bad';
+  AppState.setBank(makeBank());
+  SessionState.init('test-v1');
+  mockFetch(401, { error: { message: 'invalid_api_key' } });
+  await CoachAPI.explain(makeQuestion(), 'B');
+  assert.len(_uiCalls.errors, 1);
+  assert.includes(_uiCalls.errors[0], 'Invalid API key');
+});
+
+test('explain() calls showCoachError on 429', async () => {
+  resetCoach();
+  _store.apikey = 'sk-test';
+  AppState.setBank(makeBank());
+  SessionState.init('test-v1');
+  mockFetch(429, { error: { message: 'rate_limit_exceeded' } });
+  await CoachAPI.explain(makeQuestion(), 'B');
+  assert.includes(_uiCalls.errors[0], 'Rate limit');
+});
+
+test('explain() calls showCoachError on network failure', async () => {
+  resetCoach();
+  _store.apikey = 'sk-test';
+  AppState.setBank(makeBank());
+  SessionState.init('test-v1');
+  window.fetch = async () => { throw new TypeError('Failed to fetch'); };
+  await CoachAPI.explain(makeQuestion(), 'B');
+  assert.len(_uiCalls.errors, 1);
+  assert.includes(_uiCalls.errors[0], 'fetch');
+});
+
+test('explain() is a no-op when already busy', async () => {
+  resetCoach();
+  _store.apikey = 'sk-test';
+  AppState.setBank(makeBank());
+  SessionState.init('test-v1');
+  // First call — hangs indefinitely
+  let resolveFetch;
+  window.fetch = () => new Promise(r => { resolveFetch = r; });
+  const first = CoachAPI.explain(makeQuestion(), 'B');
+  // Second call while first is in flight
+  await CoachAPI.explain(makeQuestion(), 'A');
+  assert.eq(_uiCalls.loading, 1); // only one showCoachLoading call
+  resolveFetch({ ok: true, status: 200, json: async () => ({ content:[{text:''}], usage:{input_tokens:0,output_tokens:0} }) });
+  await first;
+});
+
+
+/* ── Suite 6: CoachAPI — followUp() ────────────────────────── */
+suite('CoachAPI — followUp()');
+
+test('followUp() appends user message to panel', async () => {
+  resetCoach();
+  _store.apikey = 'sk-test';
+  AppState.setBank(makeBank());
+  SessionState.init('test-v1');
+  // Seed an initial explain so _currentQuestion is set
+  mockFetch(200, { content:[{text:'Initial explanation.'}], usage:{input_tokens:50,output_tokens:30} });
+  await CoachAPI.explain(makeQuestion(), 'B');
+  resetUI();
+  mockFetch(200, { content:[{text:'Follow-up answer.'}], usage:{input_tokens:80,output_tokens:40} });
+  await CoachAPI.followUp('Why is 6 dB wrong?');
+  const userMsg = _uiCalls.appended.find(m => m.role === 'user');
+  assert.true(!!userMsg);
+  assert.includes(userMsg.content, 'Why is 6 dB wrong?');
+});
+
+test('followUp() appends assistant response to panel', async () => {
+  resetCoach();
+  _store.apikey = 'sk-test';
+  AppState.setBank(makeBank());
+  SessionState.init('test-v1');
+  mockFetch(200, { content:[{text:'Initial.'}], usage:{input_tokens:50,output_tokens:20} });
+  await CoachAPI.explain(makeQuestion(), 'B');
+  resetUI();
+  mockFetch(200, { content:[{text:'Follow-up answer.'}], usage:{input_tokens:80,output_tokens:40} });
+  await CoachAPI.followUp('Why?');
+  const assistantMsg = _uiCalls.appended.find(m => m.role === 'assistant');
+  assert.true(!!assistantMsg);
+  assert.includes(assistantMsg.content, 'Follow-up answer.');
+});
+
+test('followUp() includes prior exchange in history sent to API', async () => {
+  resetCoach();
+  _store.apikey = 'sk-test';
+  AppState.setBank(makeBank());
+  SessionState.init('test-v1');
+  let capturedBody;
+  window.fetch = async (url, opts) => {
+    capturedBody = JSON.parse(opts.body);
+    return { ok: true, status: 200, json: async () => ({ content:[{text:'ok'}], usage:{input_tokens:10,output_tokens:5} }) };
+  };
+  await CoachAPI.explain(makeQuestion(), 'B');
+  await CoachAPI.followUp('Tell me more.');
+  // Should have: [explain-user, explain-assistant, followup-user]
+  assert.gt(capturedBody.messages.length, 2);
+});
+
+test('followUp() is a no-op when _currentQuestion is null', async () => {
+  resetCoach();
+  _store.apikey = 'sk-test';
+  AppState.setBank(makeBank());
+  // Do NOT call explain() — _currentQuestion stays null
+  await CoachAPI.followUp('A question with no context.');
+  assert.len(_uiCalls.appended, 0);
+});
+
+test('followUp() is a no-op on empty string', async () => {
+  resetCoach();
+  _store.apikey = 'sk-test';
+  AppState.setBank(makeBank());
+  SessionState.init('test-v1');
+  mockFetch(200, { content:[{text:'Initial.'}], usage:{input_tokens:50,output_tokens:20} });
+  await CoachAPI.explain(makeQuestion(), 'B');
+  resetUI();
+  await CoachAPI.followUp('   ');
+  assert.len(_uiCalls.appended, 0);
+});
+
+} // end runTests
+
+
+/* ================================================================
+   BOOT
+   ================================================================ */
+document.addEventListener('DOMContentLoaded', async () => {
+  await runTests();
+  render();
+});
+</script>
+</body>
+</html>
