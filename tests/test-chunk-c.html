@@ -321,23 +321,31 @@ function resetCoach() {
 
 
 /* ----------------------------------------------------------------
-   Runner
+   Runner — two-phase: register then execute sequentially.
+   test() is synchronous (captures suite + fn into a queue).
+   DOMContentLoaded runs the queue and renders when all done.
+   This ensures async tests (fetch-mocked API calls) complete
+   before render() is called.
    ---------------------------------------------------------------- */
 let _passed = 0, _failed = 0;
 const _suites = [];
 let _cur = null;
+const _queue = [];
 
 function suite(name) { _cur = { name, tests: [] }; _suites.push(_cur); }
 
-async function test(desc, fn) {
-  try {
-    await fn();
-    _passed++;
-    _cur.tests.push({ desc, status: 'pass', detail: null });
-  } catch(e) {
-    _failed++;
-    _cur.tests.push({ desc, status: 'fail', detail: e.message });
-  }
+function test(desc, fn) {
+  const s = _cur; // capture suite at registration time
+  _queue.push(async () => {
+    try {
+      await fn();
+      _passed++;
+      s.tests.push({ desc, status: 'pass', detail: null });
+    } catch(e) {
+      _failed++;
+      s.tests.push({ desc, status: 'fail', detail: e.message });
+    }
+  });
 }
 
 const assert = {
@@ -392,7 +400,7 @@ function render() {
 /* ================================================================
    SUITE 1: MarkdownRenderer
    ================================================================ */
-async function runTests() {
+function runTests() {
 
 suite('MarkdownRenderer — block elements');
 
@@ -743,7 +751,8 @@ test('followUp() is a no-op on empty string', async () => {
    BOOT
    ================================================================ */
 document.addEventListener('DOMContentLoaded', async () => {
-  await runTests();
+  runTests();                          // synchronous: registers suites + tests
+  for (const t of _queue) await t();  // sequential: runs each test to completion
   render();
 });
 </script>
