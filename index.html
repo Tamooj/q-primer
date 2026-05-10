@@ -1039,8 +1039,9 @@
     const Storage = (() => {
       const K_APIKEY        = 'q-primer:apikey';       // sessionStorage — cleared on tab close
       const K_APIKEY_SAVED  = 'q-primer:apikey-saved'; // localStorage  — persists across sessions
-      const K_STUDENT = 'q-primer:student';
-      const K_SESSION = 'q-primer:session';
+      const K_STUDENT   = 'q-primer:student';
+      const K_SESSION   = 'q-primer:session';
+      const K_LAST_BANK = 'q-primer:last-bank';        // localStorage  — { source, url?, filename? }
 
       function safeGet(store, key) {
         try { return JSON.parse(store.getItem(key)); }
@@ -1057,6 +1058,11 @@
         getRememberedKey()   { return localStorage.getItem(K_APIKEY_SAVED) || ''; },
         setRememberedKey(k)  { k ? localStorage.setItem(K_APIKEY_SAVED, k) : localStorage.removeItem(K_APIKEY_SAVED); },
         clearRememberedKey() { localStorage.removeItem(K_APIKEY_SAVED); },
+
+        // ── Last bank (localStorage — source + url or filename) ─
+        getLastBank()   { return safeGet(localStorage, K_LAST_BANK); },
+        setLastBank(o)  { localStorage.setItem(K_LAST_BANK, JSON.stringify(o)); },
+        clearLastBank() { localStorage.removeItem(K_LAST_BANK); },
 
         // ── Student profile (localStorage) ──────────────────────
         getStudent()   { return safeGet(localStorage, K_STUDENT); },
@@ -1719,12 +1725,13 @@ Guidelines:
         el.bankStatus.textContent = message;
       }
 
-      function resetBankZone() {
+      function resetBankZone(lastFilename) {
         el.bankFileInput.value = ''; // clear so re-selecting the same file fires change
         el.bankDropZone.classList.remove('is-loaded', 'is-error');
         el.bankDropInner.querySelector('.bank-drop-icon').textContent    = '📂';
         el.bankDropInner.querySelector('.bank-drop-primary').textContent = 'Click to load a question bank';
-        el.bankDropInner.querySelector('.bank-drop-sub').textContent     = '.json format';
+        el.bankDropInner.querySelector('.bank-drop-sub').textContent     =
+          lastFilename ? `Last used: ${lastFilename}` : '.json or .zip';
         el.bankStatus.className   = '';
         el.bankStatus.textContent = '';
       }
@@ -1780,6 +1787,7 @@ Guidelines:
           AppState.setBank(result.bank);
           AppState.setImageMap(result.imageMap || null);
           showBankLoaded(result.bank);
+          Storage.setLastBank({ source: 'file', filename: file.name });
         } else {
           AppState.clearBank();
           AppState.clearImageMap();
@@ -1802,6 +1810,7 @@ Guidelines:
           AppState.setBank(result.bank);
           AppState.setImageMap(result.imageMap || null);
           showBankLoaded(result.bank);
+          Storage.setLastBank({ source: 'url', url: raw });
           el.bankUrlInput.value = ''; // clear on success
         } else {
           AppState.clearBank();
@@ -1884,7 +1893,9 @@ Guidelines:
           el.rememberKeyCheck.checked = false;
         }
 
-        resetBankZone();
+        const lastBank = Storage.getLastBank();
+        const lastFilename = (lastBank && lastBank.source === 'file') ? lastBank.filename : null;
+        resetBankZone(lastFilename);
         refreshStartButton();
 
         // Reset coach/question panels for next session
@@ -2241,6 +2252,19 @@ Guidelines:
         } else {
           const sessionKey = Storage.getApiKey();
           if (sessionKey) el.apiKeyInput.value = sessionKey;
+        }
+
+        // Restore last bank
+        const lastBank = Storage.getLastBank();
+        if (lastBank) {
+          if (lastBank.source === 'url' && lastBank.url) {
+            // URL bank — auto-fetch silently
+            el.bankUrlInput.value = lastBank.url;
+            onBankUrl(); // async, runs in background — no await needed here
+          } else if (lastBank.source === 'file' && lastBank.filename) {
+            // File bank — can't reopen automatically; show hint in drop zone
+            resetBankZone(lastBank.filename);
+          }
         }
 
         // Wire events
