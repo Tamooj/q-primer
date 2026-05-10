@@ -6,9 +6,9 @@
     "version": "1.1",
     "effective_from": "2023-07-01",
     "effective_to": "2027-06-30",
-    "total_questions": 35,
-    "passing_score": 26,
-    "exam_question_count": 35,
+    "total_questions": 31,
+    "passing_score": null,
+    "exam_question_count": null,
     "source_url": "https://www.arrl.org/general-class-question-pool",
     "description": "Official FCC question pool for the Amateur Radio General Class license examination (2023-2027 pool, second errata applied). This sample contains representative questions from subelements G1 (Commission Rules), G5B (Electrical Principles: decibels and power calculations), G6B (Circuit Components), and G7A (Practical Circuits: power supplies and schematic symbols). It is intended for Q-Primer application development and testing only — not a complete study resource.",
     "tags": ["amateur radio", "FCC", "RF", "electronics", "sample"]
