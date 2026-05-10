@@ -582,6 +582,12 @@
       <div class="setup-section">
         <button id="start-btn" class="btn btn-primary" disabled>Start Studying</button>
         <div id="start-hint"></div>
+        <div id="start-fresh-wrap" hidden style="text-align:center; margin-top:0.4rem;">
+          <button id="start-fresh-btn" class="btn btn-ghost"
+                  style="font-size:0.72rem; padding:0.25rem 0.75rem;">
+            Start Fresh — discard saved progress
+          </button>
+        </div>
       </div>
 
     </div>
@@ -1199,6 +1205,8 @@
         profileInput:    document.getElementById('profile-input'),
         startBtn:        document.getElementById('start-btn'),
         startHint:       document.getElementById('start-hint'),
+        startFreshWrap:  document.getElementById('start-fresh-wrap'),
+        startFreshBtn:   document.getElementById('start-fresh-btn'),
 
         // Session bar
         scoreDisplay:    document.getElementById('score-display'),
@@ -1261,6 +1269,7 @@
 
         // API key is optional — the quiz works without it; coaching just won't fire.
         el.startBtn.disabled = !hasBank;
+        el.startFreshWrap.hidden = true;
 
         if (!hasBank) {
           el.startBtn.textContent  = 'Start Studying';
@@ -1275,10 +1284,10 @@
           const answered = saved.session.progress.answered.length;
           const total    = bank.questions.length;
           if (answered > 0) {
-            el.startBtn.textContent  = 'Resume Session';
-            el.startHint.textContent =
-              `${answered}/${total} questions answered — your progress will be restored.` +
-              (!hasKey ? ' (No API key — AI coaching will be unavailable.)' : '');
+            const done = answered >= total ? 'Session complete.' : `${answered}/${total} questions answered.`;
+            el.startBtn.textContent  = answered >= total ? 'Review Completed Session' : 'Resume Session';
+            el.startHint.textContent = `${done}${!hasKey ? ' No API key — AI coaching will be unavailable.' : ''}`;
+            el.startFreshWrap.hidden = false;
             return;
           }
         }
@@ -1656,6 +1665,10 @@
         el.profileInput.addEventListener('input', onProfileInput);
         el.startBtn.addEventListener('click', onStartStudying);
         el.endSessionBtn.addEventListener('click', transitionToSetup);
+        el.startFreshBtn.addEventListener('click', () => {
+          Storage.clearSession();
+          refreshStartButton();
+        });
 
         refreshStartButton();
       }
