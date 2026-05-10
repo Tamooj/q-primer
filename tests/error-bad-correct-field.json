@@ -1,0 +1,38 @@
+{
+  "_test_note": "INTENTIONALLY INVALID — for testing BankLoader error display only. questions[1].correct is set to 'E', which is not a valid answer key. Expected error: questions[1].correct must be A, B, C, or D.",
+
+  "meta": {
+    "title": "Error Test Bank",
+    "subtitle": "Invalid bank for UI error-handling verification",
+    "pool_id": "error-test-v1",
+    "version": "1.0",
+    "description": "This file is deliberately malformed. Do not use for studying."
+  },
+
+  "questions": [
+    {
+      "id": "ERR001",
+      "question": "This question is valid and should parse correctly.",
+      "answers": {
+        "A": "Answer A",
+        "B": "Answer B",
+        "C": "Answer C",
+        "D": "Answer D"
+      },
+      "correct": "B",
+      "annotation": null
+    },
+    {
+      "id": "ERR002",
+      "question": "This question has an invalid correct field — 'E' is not a valid answer key.",
+      "answers": {
+        "A": "Answer A",
+        "B": "Answer B",
+        "C": "Answer C",
+        "D": "Answer D"
+      },
+      "correct": "E",
+      "annotation": null
+    }
+  ]
+}
