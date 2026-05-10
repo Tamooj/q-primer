@@ -6,6 +6,32 @@ Q-Primer is a free, open-source study tool that helps people prepare for multipl
 
 ---
 
+## Getting Started
+
+Q-Primer requires no installation, no server, and no build step. It is a single HTML file that runs entirely in your browser.
+
+**1. Get the files**
+
+Download or clone the repository:
+```
+git clone https://github.com/Tamooj/q-primer.git
+```
+Or use the GitHub **Code → Download ZIP** button and extract it anywhere on your computer.
+
+**2. Open the app**
+
+Open `app/q-primer.html` directly in any modern browser (Chrome, Firefox, Edge, or Safari). You can do this by double-clicking the file in your file manager, or by dragging it into a browser window. No local web server is needed.
+
+**3. Load a question bank**
+
+Click the question bank area and select a `.json` or `.zip` bank file from the `banks/` folder. A 31-question sample for the FCC Amateur Radio General Class exam is included to get you started.
+
+**4. Start studying**
+
+Enter your name and background (optional), add an API key if you have one, and click **Start Studying**. Your progress is saved automatically in your browser and will be waiting when you return.
+
+---
+
 ## Prerequisites
 
 **To use the AI coaching features, you will need an Anthropic API key.**
