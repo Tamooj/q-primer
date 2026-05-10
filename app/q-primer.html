@@ -1244,6 +1244,7 @@
       }
 
       function resetBankZone() {
+        el.bankFileInput.value = ''; // clear so re-selecting the same file fires change
         el.bankDropZone.classList.remove('is-loaded', 'is-error');
         el.bankDropInner.querySelector('.bank-drop-icon').textContent    = '📂';
         el.bankDropInner.querySelector('.bank-drop-primary').textContent = 'Click to load a question bank';
