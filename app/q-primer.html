@@ -1,0 +1,1153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Q-Primer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+  <style>
+    /* ============================================================
+       DESIGN TOKENS
+       ============================================================ */
+    :root {
+      --bg:             #0f1117;
+      --surface:        #1a1d27;
+      --border:         #2e3347;
+      --accent:         #4a9eff;
+      --correct:        #22c55e;
+      --incorrect:      #ef4444;
+      --text-primary:   #e8eaf0;
+      --text-secondary: #8b90a7;
+      --font-mono: 'IBM Plex Mono', monospace;
+      --font-sans: 'IBM Plex Sans', sans-serif;
+      --session-bar-h:  44px;
+      --radius:         6px;
+    }
+
+    /* ============================================================
+       RESET & BASE
+       ============================================================ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+
+    body {
+      background: var(--bg);
+      color: var(--text-primary);
+      font-family: var(--font-mono);
+      font-size: 14px;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    [hidden] { display: none !important; }
+
+    /* ============================================================
+       SHARED FORM ELEMENTS
+       ============================================================ */
+    .field-label {
+      display: block;
+      font-size: 0.72rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 0.4rem;
+    }
+
+    .text-input {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text-primary);
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      padding: 0.6rem 0.75rem;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .text-input:focus          { border-color: var(--accent); }
+    .text-input::placeholder   { color: var(--text-secondary); }
+    textarea.text-input        { resize: vertical; min-height: 88px; line-height: 1.5; }
+
+    .field-hint {
+      margin-top: 0.3rem;
+      font-size: 0.72rem;
+      color: var(--text-secondary);
+    }
+
+    /* Buttons */
+    .btn {
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: opacity 0.15s, background 0.15s, border-color 0.15s, color 0.15s;
+    }
+    .btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+    .btn-primary {
+      width: 100%;
+      padding: 0.65rem 1.5rem;
+      background: var(--accent);
+      color: #fff;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      border: none;
+    }
+    .btn-primary:hover:not(:disabled) { opacity: 0.88; }
+
+    .btn-ghost {
+      padding: 0.5rem 1rem;
+      background: transparent;
+      color: var(--text-secondary);
+      border: 1px solid var(--border);
+    }
+    .btn-ghost:hover:not(:disabled) { border-color: var(--text-secondary); color: var(--text-primary); }
+
+    .btn-accent-outline {
+      padding: 0.5rem 1.25rem;
+      background: var(--surface);
+      color: var(--accent);
+      font-weight: 600;
+      border: 1px solid var(--accent);
+      animation: slide-up 0.2s ease-out;
+    }
+    .btn-accent-outline:hover:not(:disabled) { background: rgba(74,158,255,0.1); }
+
+    .btn-submit {
+      padding: 0.5rem 1.25rem;
+      background: var(--accent);
+      color: #fff;
+      font-weight: 600;
+      border: none;
+    }
+    .btn-submit:hover:not(:disabled) { opacity: 0.88; }
+
+    .btn-danger-ghost {
+      padding: 0.28rem 0.65rem;
+      background: transparent;
+      color: var(--text-secondary);
+      border: 1px solid var(--border);
+      font-size: 0.72rem;
+    }
+    .btn-danger-ghost:hover { border-color: var(--incorrect); color: var(--incorrect); }
+
+    /* Animations */
+    @keyframes slide-up {
+      from { opacity: 0; transform: translateY(6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fade-in {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 0.35; }
+      50%       { opacity: 0.7;  }
+    }
+
+    /* ============================================================
+       SETUP PANEL
+       ============================================================ */
+    #setup-panel {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem 1rem;
+    }
+
+    .setup-card {
+      width: 100%;
+      max-width: 480px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 2rem;
+    }
+
+    .setup-wordmark {
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: var(--accent);
+      letter-spacing: 0.06em;
+      margin-bottom: 0.2rem;
+    }
+
+    .setup-tagline {
+      font-size: 0.78rem;
+      color: var(--text-secondary);
+      margin-bottom: 2rem;
+    }
+
+    .setup-section { margin-bottom: 1.4rem; }
+    .setup-section:last-child { margin-bottom: 0; }
+
+    hr.setup-divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 1.5rem 0;
+    }
+
+    /* Bank drop zone */
+    .bank-drop-zone {
+      position: relative;
+      border: 1px dashed var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem 1rem;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .bank-drop-zone:hover          { border-color: var(--accent); background: rgba(74,158,255,0.04); }
+    .bank-drop-zone.is-loaded      { border-style: solid; border-color: var(--correct);   background: rgba(34,197,94,0.04); }
+    .bank-drop-zone.is-error       { border-style: solid; border-color: var(--incorrect); background: rgba(239,68,68,0.04);  }
+
+    .bank-drop-zone input[type="file"] {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      cursor: pointer;
+    }
+
+    .bank-drop-inner { pointer-events: none; }
+
+    .bank-drop-icon    { font-size: 1.4rem; display: block; margin-bottom: 0.35rem; color: var(--text-secondary); }
+    .bank-drop-primary { font-size: 0.85rem; color: var(--text-primary); }
+    .bank-drop-sub     { font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.2rem; }
+
+    #bank-status {
+      margin-top: 0.5rem;
+      font-size: 0.78rem;
+      min-height: 1.1em;
+    }
+    #bank-status.is-success { color: var(--correct); }
+    #bank-status.is-error   { color: var(--incorrect); }
+
+    #start-hint {
+      text-align: center;
+      margin-top: 0.45rem;
+      font-size: 0.72rem;
+      color: var(--text-secondary);
+      min-height: 1.1em;
+    }
+
+    /* ============================================================
+       SESSION BAR
+       ============================================================ */
+    #session-bar {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      height: var(--session-bar-h);
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 1.25rem;
+      z-index: 100;
+    }
+
+    .sbar-left  { display: flex; align-items: center; gap: 1.25rem; }
+    .sbar-right { display: flex; align-items: center; gap: 1rem; }
+
+    .sbar-wordmark  { font-size: 0.78rem; font-weight: 600; color: var(--accent); letter-spacing: 0.06em; }
+    .sbar-score     { font-size: 0.78rem; color: var(--text-secondary); }
+    .sbar-score strong { color: var(--text-primary); font-weight: 500; }
+    .sbar-remaining { font-size: 0.72rem; color: var(--text-secondary); }
+
+    /* ============================================================
+       STUDY VIEW
+       ============================================================ */
+    #study-view {
+      padding-top: var(--session-bar-h);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .study-columns {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+    }
+
+    /* ============================================================
+       QUESTION PANEL
+       ============================================================ */
+    #question-panel {
+      width: 55%;
+      padding: 2rem;
+      overflow-y: auto;
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .q-meta {
+      display: flex;
+      gap: 1rem;
+      font-size: 0.72rem;
+      color: var(--text-secondary);
+    }
+
+    .q-text {
+      font-family: var(--font-sans);
+      font-size: 1rem;
+      line-height: 1.75;
+      color: var(--text-primary);
+    }
+
+    /* Answer buttons */
+    .answer-choices { display: flex; flex-direction: column; gap: 0.45rem; }
+
+    .answer-btn {
+      width: 100%;
+      text-align: left;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text-primary);
+      font-family: var(--font-sans);
+      font-size: 0.9rem;
+      line-height: 1.5;
+      padding: 0.6rem 0.875rem;
+      cursor: pointer;
+      transition: border-color 0.1s, background 0.1s, opacity 0.2s;
+      display: flex;
+      gap: 0.75rem;
+      align-items: flex-start;
+    }
+    .answer-btn:hover:not(:disabled)  { border-color: var(--accent); background: rgba(74,158,255,0.04); }
+    .answer-btn.is-selected            { border-color: var(--accent);    background: rgba(74,158,255,0.08); }
+    .answer-btn.is-correct             { border-color: var(--correct);   background: rgba(34,197,94,0.1);  transition: background 0.2s, border-color 0.2s; }
+    .answer-btn.is-incorrect           { border-color: var(--incorrect); background: rgba(239,68,68,0.1);  transition: background 0.2s, border-color 0.2s; }
+    .answer-btn.is-dimmed              { opacity: 0.38; }
+    .answer-btn:disabled               { cursor: default; }
+
+    .answer-key {
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      flex-shrink: 0;
+      padding-top: 2px;
+    }
+    .answer-btn.is-selected .answer-key,
+    .answer-btn.is-correct  .answer-key { color: var(--text-primary); }
+
+    /* Question action row */
+    .q-actions { display: flex; gap: 0.65rem; align-items: center; }
+
+    /* ============================================================
+       COACH PANEL
+       ============================================================ */
+    #coach-panel {
+      width: 45%;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    #coach-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 2rem;
+    }
+
+    .coach-placeholder {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      font-style: italic;
+    }
+
+    /* Loading pulse bars */
+    .coach-loading { display: flex; flex-direction: column; gap: 0.45rem; }
+    .coach-loading-bar {
+      height: 9px;
+      background: var(--border);
+      border-radius: 3px;
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+    .coach-loading-bar:nth-child(1)              { width: 100%; }
+    .coach-loading-bar:nth-child(2)              { width: 83%;  animation-delay: 0.15s; }
+    .coach-loading-bar:nth-child(3)              { width: 91%;  animation-delay: 0.3s;  }
+    .coach-loading-bar:nth-child(4)              { width: 67%;  animation-delay: 0.45s; }
+
+    /* Coach response */
+    .coach-response { animation: fade-in 0.3s ease-out; }
+
+    .coach-response p           { font-family: var(--font-sans); font-size: 0.875rem; line-height: 1.7; color: var(--text-primary); margin-bottom: 0.75rem; }
+    .coach-response p:last-child{ margin-bottom: 0; }
+    .coach-response strong      { font-weight: 600; }
+    .coach-response em          { font-style: italic; }
+
+    .coach-response code {
+      font-family: var(--font-mono);
+      font-size: 0.82em;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      padding: 0.1em 0.35em;
+    }
+
+    .coach-response pre {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 0.875rem;
+      margin: 0.75rem 0;
+      overflow-x: auto;
+    }
+    .coach-response pre code { background: none; border: none; padding: 0; font-size: 0.82rem; line-height: 1.6; }
+
+    /* Error state */
+    .coach-error {
+      font-family: var(--font-sans);
+      font-size: 0.85rem;
+      color: var(--incorrect);
+      background: rgba(239,68,68,0.06);
+      border: 1px solid rgba(239,68,68,0.2);
+      border-radius: var(--radius);
+      padding: 0.75rem;
+    }
+
+    /* Coach footer */
+    .coach-footer {
+      border-top: 1px solid var(--border);
+      padding: 0.65rem 0.875rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+
+    .coach-followup { display: flex; gap: 0.45rem; align-items: flex-end; }
+
+    .coach-followup-input {
+      flex: 1;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text-primary);
+      font-family: var(--font-sans);
+      font-size: 0.85rem;
+      padding: 0.45rem 0.7rem;
+      outline: none;
+      resize: none;
+      min-height: 34px;
+      max-height: 96px;
+      line-height: 1.5;
+      transition: border-color 0.15s;
+    }
+    .coach-followup-input:focus       { border-color: var(--accent); }
+    .coach-followup-input::placeholder { color: var(--text-secondary); }
+
+    .btn-followup-send {
+      padding: 0.35rem 0.65rem;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius);
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: opacity 0.15s;
+    }
+    .btn-followup-send:hover:not(:disabled) { opacity: 0.88; }
+    .btn-followup-send:disabled             { opacity: 0.35; cursor: not-allowed; }
+
+    #token-usage-display {
+      font-size: 0.68rem;
+      color: var(--text-secondary);
+      text-align: right;
+      min-height: 1em;
+    }
+
+    /* ============================================================
+       COMPLETION SCREEN
+       ============================================================ */
+    #completion-screen {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      padding: 2rem;
+      text-align: center;
+      gap: 1.1rem;
+      animation: fade-in 0.4s ease-out;
+    }
+
+    #completion-screen h2      { font-size: 1rem; font-weight: 600; color: var(--accent); letter-spacing: 0.04em; }
+    .completion-big-score      { font-size: 2.2rem; font-weight: 600; color: var(--text-primary); }
+    .completion-big-score span { font-size: 1rem; color: var(--text-secondary); font-weight: 400; }
+    .completion-stats          { font-size: 0.78rem; color: var(--text-secondary); line-height: 1.9; }
+
+    /* ============================================================
+       RESPONSIVE — single column on mobile
+       ============================================================ */
+    @media (max-width: 768px) {
+      #study-view     { height: auto; min-height: 100vh; }
+
+      .study-columns  { flex-direction: column; overflow-y: auto; }
+
+      #question-panel {
+        width: 100%;
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+        overflow-y: visible;
+      }
+
+      #coach-panel    { width: 100%; min-height: 280px; }
+
+      .sbar-remaining { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ============================================================
+       SETUP PANEL
+       ============================================================ -->
+  <div id="setup-panel">
+    <div class="setup-card">
+
+      <div class="setup-wordmark">Q-PRIMER</div>
+      <div class="setup-tagline">AI-coached exam preparation</div>
+
+      <!-- 1. Bank loader -->
+      <div class="setup-section">
+        <label class="field-label">Question Bank</label>
+        <div class="bank-drop-zone" id="bank-drop-zone">
+          <input type="file" id="bank-file-input" accept=".json"
+                 aria-label="Load question bank JSON file">
+          <div class="bank-drop-inner" id="bank-drop-inner">
+            <span class="bank-drop-icon" aria-hidden="true">📂</span>
+            <div class="bank-drop-primary">Click to load a question bank</div>
+            <div class="bank-drop-sub">.json format</div>
+          </div>
+        </div>
+        <div id="bank-status" role="status" aria-live="polite"></div>
+      </div>
+
+      <hr class="setup-divider">
+
+      <!-- 2. API key -->
+      <div class="setup-section">
+        <label class="field-label" for="api-key-input">Anthropic API Key</label>
+        <input type="password" id="api-key-input" class="text-input"
+               placeholder="sk-ant-…" autocomplete="off" spellcheck="false">
+        <div class="field-hint">
+          Required for AI coaching. Cleared when you close this tab.
+          <a href="https://console.anthropic.com" target="_blank" rel="noopener">Get a key ↗</a>
+        </div>
+      </div>
+
+      <!-- 3. Student profile -->
+      <div class="setup-section">
+        <label class="field-label" for="profile-input">
+          Your Background
+          <span style="color:var(--text-secondary);font-weight:400;text-transform:none;letter-spacing:0">
+            (optional)
+          </span>
+        </label>
+        <textarea id="profile-input" class="text-input"
+          placeholder="Describe your background and what you already know. The AI coach uses this to calibrate depth and examples. Example: I have an EE degree and 10 years in RF. I need help with FCC regulations, not electronics basics."
+        ></textarea>
+        <div class="field-hint">Saved locally in your browser between sessions.</div>
+      </div>
+
+      <!-- 4. Start -->
+      <div class="setup-section">
+        <button id="start-btn" class="btn btn-primary" disabled>Start Studying</button>
+        <div id="start-hint"></div>
+      </div>
+
+    </div>
+  </div>
+
+
+  <!-- ============================================================
+       STUDY VIEW  (hidden until session starts)
+       ============================================================ -->
+  <div id="study-view" hidden>
+
+    <!-- Session bar -->
+    <div id="session-bar">
+      <div class="sbar-left">
+        <span class="sbar-wordmark">Q-PRIMER</span>
+        <span class="sbar-score">
+          <strong id="score-display">–</strong>
+          <span id="score-label"></span>
+        </span>
+      </div>
+      <div class="sbar-right">
+        <span class="sbar-remaining" id="remaining-display"></span>
+        <button class="btn btn-danger-ghost" id="end-session-btn">End Session</button>
+      </div>
+    </div>
+
+    <div class="study-columns">
+
+      <!-- Question panel — populated by QuizEngine (Chunk B) -->
+      <div id="question-panel" aria-live="polite">
+        <div class="coach-placeholder">Loading…</div>
+      </div>
+
+      <!-- Coach panel — populated by CoachAPI (Chunk C) -->
+      <div id="coach-panel">
+        <div id="coach-content">
+          <div class="coach-placeholder">Answer a question to see a coaching explanation here.</div>
+        </div>
+        <div class="coach-footer">
+          <div class="coach-followup">
+            <textarea id="followup-input" class="coach-followup-input"
+                      placeholder="Ask a follow-up question…" rows="1" disabled></textarea>
+            <button id="followup-send-btn" class="btn-followup-send" disabled>Send</button>
+          </div>
+          <div id="token-usage-display"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+
+  <!-- ============================================================
+       JAVASCRIPT
+       ============================================================ -->
+  <script>
+    'use strict';
+
+    /* ============================================================
+       MODULE: BankLoader
+       Validates and loads question bank JSON files.
+       Pure functions — no DOM access, no side effects.
+       ============================================================ */
+    const BankLoader = (() => {
+
+      const REQUIRED_META     = ['title', 'pool_id', 'version'];
+      const REQUIRED_QUESTION = ['id', 'question', 'answers', 'correct'];
+      const ANSWER_KEYS       = ['A', 'B', 'C', 'D'];
+
+      /** Convenience: return a failure result. */
+      const fail = (error) => ({ valid: false, error });
+
+      /**
+       * Validate a parsed bank object against the Q-Primer schema.
+       *
+       * Rules enforced:
+       *   1. All required fields present at every level
+       *   2. answers has exactly keys A, B, C, D (all non-empty strings)
+       *   3. correct is one of A, B, C, D
+       *   4. All question IDs are unique
+       *   5. If structure present: subelement/group refs are defined
+       *   6. No question or answer text is empty
+       *
+       * @param  {unknown} bank
+       * @returns {{ valid: true, bank: object } | { valid: false, error: string }}
+       */
+      function validate(bank) {
+
+        // ── Top-level shape ──────────────────────────────────────
+        if (!bank || typeof bank !== 'object' || Array.isArray(bank)) {
+          return fail('File is not a valid JSON object.');
+        }
+
+        // ── meta ─────────────────────────────────────────────────
+        if (!bank.meta || typeof bank.meta !== 'object' || Array.isArray(bank.meta)) {
+          return fail('Missing required "meta" object.');
+        }
+        for (const field of REQUIRED_META) {
+          if (typeof bank.meta[field] !== 'string' || bank.meta[field].trim() === '') {
+            return fail(`meta.${field} is required and must be a non-empty string.`);
+          }
+        }
+
+        // ── questions ─────────────────────────────────────────────
+        if (!Array.isArray(bank.questions)) {
+          return fail('Missing required "questions" array.');
+        }
+        if (bank.questions.length === 0) {
+          return fail('Question bank must contain at least one question.');
+        }
+
+        // ── structure lookup tables (if structure is present) ─────
+        const validSubelements = new Set();
+        const validGroups      = new Set();
+
+        if (bank.structure !== undefined && bank.structure !== null) {
+          if (!Array.isArray(bank.structure.subelements)) {
+            return fail('structure.subelements must be an array.');
+          }
+          for (let si = 0; si < bank.structure.subelements.length; si++) {
+            const sub = bank.structure.subelements[si];
+            if (!sub.id || typeof sub.id !== 'string') {
+              return fail(`structure.subelements[${si}] must have a non-empty string id.`);
+            }
+            validSubelements.add(sub.id);
+            if (Array.isArray(sub.groups)) {
+              for (let gi = 0; gi < sub.groups.length; gi++) {
+                const g = sub.groups[gi];
+                if (!g.id || typeof g.id !== 'string') {
+                  return fail(`structure.subelements[${si}].groups[${gi}] must have a non-empty string id.`);
+                }
+                validGroups.add(g.id);
+              }
+            }
+          }
+        }
+
+        const hasStructure = validSubelements.size > 0;
+
+        // ── per-question validation ───────────────────────────────
+        const seenIds = new Set();
+
+        for (let i = 0; i < bank.questions.length; i++) {
+          const q  = bank.questions[i];
+          const at = `questions[${i}]`;
+
+          if (!q || typeof q !== 'object') {
+            return fail(`${at} must be an object.`);
+          }
+
+          // Required fields exist
+          for (const field of REQUIRED_QUESTION) {
+            if (q[field] === undefined || q[field] === null) {
+              return fail(`${at}.${field} is required.`);
+            }
+          }
+
+          // id: non-empty string, globally unique
+          if (typeof q.id !== 'string' || q.id.trim() === '') {
+            return fail(`${at}.id must be a non-empty string.`);
+          }
+          if (seenIds.has(q.id)) {
+            return fail(`Duplicate question ID: "${q.id}".`);
+          }
+          seenIds.add(q.id);
+
+          // question text: non-empty string
+          if (typeof q.question !== 'string' || q.question.trim() === '') {
+            return fail(`${at}.question must be a non-empty string.`);
+          }
+
+          // answers: object with exactly keys A, B, C, D
+          if (typeof q.answers !== 'object' || Array.isArray(q.answers) || q.answers === null) {
+            return fail(`${at}.answers must be an object.`);
+          }
+          const foundKeys = Object.keys(q.answers).sort().join(',');
+          if (foundKeys !== 'A,B,C,D') {
+            return fail(
+              `${at}.answers must have exactly keys A, B, C, D. ` +
+              `Found: ${foundKeys || '(none)'}`
+            );
+          }
+          for (const k of ANSWER_KEYS) {
+            if (typeof q.answers[k] !== 'string' || q.answers[k].trim() === '') {
+              return fail(`${at}.answers.${k} must be a non-empty string.`);
+            }
+          }
+
+          // correct: must be one of A, B, C, D
+          if (!ANSWER_KEYS.includes(q.correct)) {
+            return fail(
+              `${at}.correct must be A, B, C, or D. Got: "${q.correct}"`
+            );
+          }
+
+          // annotation: if present and non-null, must have type + content
+          if (q.annotation !== null && q.annotation !== undefined) {
+            if (typeof q.annotation !== 'object' || Array.isArray(q.annotation)) {
+              return fail(`${at}.annotation must be an object or null.`);
+            }
+            if (typeof q.annotation.type !== 'string' || q.annotation.type.trim() === '') {
+              return fail(`${at}.annotation.type must be a non-empty string.`);
+            }
+            if (typeof q.annotation.content !== 'string' || q.annotation.content.trim() === '') {
+              return fail(`${at}.annotation.content must be a non-empty string.`);
+            }
+          }
+
+          // Structure cross-references (only enforced when structure is present)
+          if (hasStructure) {
+            if (q.subelement && !validSubelements.has(q.subelement)) {
+              return fail(
+                `${at}.subelement "${q.subelement}" is not defined in structure.subelements.`
+              );
+            }
+            if (q.group && !validGroups.has(q.group)) {
+              return fail(
+                `${at}.group "${q.group}" is not defined in structure.`
+              );
+            }
+          }
+        }
+
+        return { valid: true, bank };
+      }
+
+      /**
+       * Read a File object and return a validated bank.
+       * @param  {File} file
+       * @returns {Promise<{ valid: true, bank: object } | { valid: false, error: string }>}
+       */
+      function load(file) {
+        return new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            let parsed;
+            try {
+              parsed = JSON.parse(e.target.result);
+            } catch (err) {
+              resolve(fail(`Invalid JSON: ${err.message}`));
+              return;
+            }
+            resolve(validate(parsed));
+          };
+          reader.onerror = () => resolve(fail('Could not read file.'));
+          reader.readAsText(file);
+        });
+      }
+
+      return { validate, load };
+    })();
+
+
+    /* ============================================================
+       MODULE: Storage
+       Thin wrappers around sessionStorage and localStorage.
+       API key lives in sessionStorage only (cleared on tab close).
+       All other state lives in localStorage.
+       ============================================================ */
+    const Storage = (() => {
+      const K_APIKEY  = 'q-primer:apikey';
+      const K_STUDENT = 'q-primer:student';
+      const K_SESSION = 'q-primer:session';
+
+      function safeGet(store, key) {
+        try { return JSON.parse(store.getItem(key)); }
+        catch { return null; }
+      }
+
+      return {
+        // ── API key (sessionStorage) ─────────────────────────────
+        getApiKey()    { return sessionStorage.getItem(K_APIKEY) || ''; },
+        setApiKey(k)   { k ? sessionStorage.setItem(K_APIKEY, k) : sessionStorage.removeItem(K_APIKEY); },
+        clearApiKey()  { sessionStorage.removeItem(K_APIKEY); },
+
+        // ── Student profile (localStorage) ──────────────────────
+        getStudent()   { return safeGet(localStorage, K_STUDENT); },
+        setStudent(o)  { localStorage.setItem(K_STUDENT, JSON.stringify(o)); },
+
+        // ── Session state (localStorage) ────────────────────────
+        getSession()   { return safeGet(localStorage, K_SESSION); },
+        setSession(o)  { localStorage.setItem(K_SESSION, JSON.stringify(o)); },
+        clearSession() { localStorage.removeItem(K_SESSION); },
+      };
+    })();
+
+
+    /* ============================================================
+       MODULE: AppState
+       Top-level in-memory state. Does not touch the DOM.
+       ============================================================ */
+    const AppState = (() => {
+      let _phase = 'SETUP'; // 'SETUP' | 'STUDY'
+      let _bank  = null;
+
+      return {
+        getPhase()   { return _phase; },
+        setPhase(p)  { _phase = p; },
+        getBank()    { return _bank; },
+        setBank(b)   { _bank = b; },
+        clearBank()  { _bank = null; },
+        hasBank()    { return _bank !== null; },
+        hasApiKey()  { return Storage.getApiKey().length > 0; },
+      };
+    })();
+
+
+    /* ============================================================
+       MODULE: UI
+       All DOM reads and writes live here.
+       Other modules have zero DOM access.
+       ============================================================ */
+    const UI = (() => {
+
+      // ── Element cache ────────────────────────────────────────────
+      const el = {
+        setupPanel:      document.getElementById('setup-panel'),
+        studyView:       document.getElementById('study-view'),
+
+        // Setup form
+        bankFileInput:   document.getElementById('bank-file-input'),
+        bankDropZone:    document.getElementById('bank-drop-zone'),
+        bankDropInner:   document.getElementById('bank-drop-inner'),
+        bankStatus:      document.getElementById('bank-status'),
+        apiKeyInput:     document.getElementById('api-key-input'),
+        profileInput:    document.getElementById('profile-input'),
+        startBtn:        document.getElementById('start-btn'),
+        startHint:       document.getElementById('start-hint'),
+
+        // Session bar
+        scoreDisplay:    document.getElementById('score-display'),
+        scoreLabel:      document.getElementById('score-label'),
+        remainingDisplay:document.getElementById('remaining-display'),
+        endSessionBtn:   document.getElementById('end-session-btn'),
+
+        // Panels
+        questionPanel:   document.getElementById('question-panel'),
+        coachContent:    document.getElementById('coach-content'),
+        followupInput:   document.getElementById('followup-input'),
+        followupSendBtn: document.getElementById('followup-send-btn'),
+        tokenUsage:      document.getElementById('token-usage-display'),
+      };
+
+      // ── Setup: bank status display ────────────────────────────────
+
+      function showBankLoaded(bank) {
+        const count = bank.questions.length;
+        el.bankDropZone.classList.remove('is-error');
+        el.bankDropZone.classList.add('is-loaded');
+
+        el.bankDropInner.querySelector('.bank-drop-icon').textContent    = '✓';
+        el.bankDropInner.querySelector('.bank-drop-primary').textContent = bank.meta.title;
+        el.bankDropInner.querySelector('.bank-drop-sub').textContent     =
+          `${count} question${count !== 1 ? 's' : ''} loaded`;
+
+        el.bankStatus.className     = 'is-success';
+        el.bankStatus.textContent   =
+          `${count} questions · ${bank.meta.pool_id} v${bank.meta.version}`;
+      }
+
+      function showBankError(message) {
+        el.bankDropZone.classList.remove('is-loaded');
+        el.bankDropZone.classList.add('is-error');
+
+        el.bankDropInner.querySelector('.bank-drop-icon').textContent    = '✗';
+        el.bankDropInner.querySelector('.bank-drop-primary').textContent = 'Load failed — click to retry';
+        el.bankDropInner.querySelector('.bank-drop-sub').textContent     = '';
+
+        el.bankStatus.className   = 'is-error';
+        el.bankStatus.textContent = message;
+      }
+
+      function resetBankZone() {
+        el.bankDropZone.classList.remove('is-loaded', 'is-error');
+        el.bankDropInner.querySelector('.bank-drop-icon').textContent    = '📂';
+        el.bankDropInner.querySelector('.bank-drop-primary').textContent = 'Click to load a question bank';
+        el.bankDropInner.querySelector('.bank-drop-sub').textContent     = '.json format';
+        el.bankStatus.className   = '';
+        el.bankStatus.textContent = '';
+      }
+
+      // ── Setup: start button ───────────────────────────────────────
+
+      function refreshStartButton() {
+        const hasBank = AppState.hasBank();
+        const hasKey  = AppState.hasApiKey();
+
+        el.startBtn.disabled = !(hasBank && hasKey);
+
+        if      (!hasBank && !hasKey) el.startHint.textContent = 'Load a question bank and enter your API key to begin.';
+        else if (!hasBank)            el.startHint.textContent = 'Load a question bank to begin.';
+        else if (!hasKey)             el.startHint.textContent = 'Enter your Anthropic API key to begin.';
+        else                          el.startHint.textContent = '';
+      }
+
+      // ── Setup: event handlers ─────────────────────────────────────
+
+      async function onBankFile(file) {
+        if (!file) return;
+        el.bankStatus.className   = '';
+        el.bankStatus.textContent = 'Validating…';
+
+        const result = await BankLoader.load(file);
+        if (result.valid) {
+          AppState.setBank(result.bank);
+          showBankLoaded(result.bank);
+        } else {
+          AppState.clearBank();
+          showBankError(result.error);
+        }
+        refreshStartButton();
+      }
+
+      function onApiKeyInput() {
+        Storage.setApiKey(el.apiKeyInput.value.trim());
+        refreshStartButton();
+      }
+
+      function onProfileInput() {
+        const existing = Storage.getStudent() || {};
+        Storage.setStudent({
+          ...existing,
+          profile:    el.profileInput.value,
+          updated_at: new Date().toISOString(),
+        });
+      }
+
+      function onStartStudying() {
+        const existing = Storage.getStudent();
+        if (!existing || !existing.created_at) {
+          Storage.setStudent({
+            profile:    el.profileInput.value,
+            created_at: new Date().toISOString(),
+          });
+        }
+        transitionToStudy();
+      }
+
+      // ── State transitions ─────────────────────────────────────────
+
+      function transitionToStudy() {
+        AppState.setPhase('STUDY');
+        el.setupPanel.hidden = true;
+        el.studyView.hidden  = false;
+        // QuizEngine.startSession() wired in Chunk B
+        if (typeof QuizEngine !== 'undefined') {
+          QuizEngine.startSession(AppState.getBank());
+        }
+      }
+
+      function transitionToSetup() {
+        AppState.setPhase('SETUP');
+        AppState.clearBank();
+        Storage.clearSession();
+        Storage.clearApiKey();
+
+        el.studyView.hidden  = true;
+        el.setupPanel.hidden = false;
+
+        el.apiKeyInput.value = '';
+        resetBankZone();
+        refreshStartButton();
+
+        // Reset coach/question panels for next session
+        el.coachContent.innerHTML = '';
+        const placeholder = document.createElement('div');
+        placeholder.className   = 'coach-placeholder';
+        placeholder.textContent = 'Answer a question to see a coaching explanation here.';
+        el.coachContent.appendChild(placeholder);
+
+        el.followupInput.value    = '';
+        el.followupInput.disabled = true;
+        el.followupSendBtn.disabled = true;
+        el.tokenUsage.textContent = '';
+      }
+
+      // ── Session bar updates (called by QuizEngine / SessionState, Chunk B+) ──
+
+      function updateSessionBar({ correct, answered, total, remaining }) {
+        const pct = answered > 0 ? Math.round((correct / answered) * 100) : 0;
+        el.scoreDisplay.textContent = answered > 0
+          ? `${correct}/${answered} (${pct}%)`
+          : '–';
+        el.scoreLabel.textContent = answered > 0 ? ' correct' : '';
+        el.remainingDisplay.textContent =
+          remaining > 0 ? `${remaining} remaining` : 'all answered';
+      }
+
+      // ── Coach panel helpers (called by CoachAPI, Chunk C) ─────────
+
+      function showCoachLoading() {
+        el.coachContent.innerHTML = '';
+        const div = document.createElement('div');
+        div.className = 'coach-loading';
+        for (let i = 0; i < 4; i++) {
+          const bar = document.createElement('div');
+          bar.className = 'coach-loading-bar';
+          div.appendChild(bar);
+        }
+        el.coachContent.appendChild(div);
+        el.coachContent.scrollTop = 0;
+      }
+
+      function showCoachResponse(htmlContent) {
+        el.coachContent.innerHTML = '';
+        const div = document.createElement('div');
+        div.className = 'coach-response';
+        div.innerHTML = htmlContent;  // sanitized markdown output only — see CoachAPI
+        el.coachContent.appendChild(div);
+
+        el.followupInput.disabled   = false;
+        el.followupSendBtn.disabled = false;
+      }
+
+      function showCoachError(message) {
+        el.coachContent.innerHTML = '';
+        const div = document.createElement('div');
+        div.className   = 'coach-error';
+        div.textContent = message;
+        el.coachContent.appendChild(div);
+      }
+
+      function updateTokenUsage(sessionInput, sessionOutput) {
+        const total = sessionInput + sessionOutput;
+        el.tokenUsage.textContent =
+          total > 0
+            ? `session tokens: ${total.toLocaleString()} (↑${sessionInput.toLocaleString()} ↓${sessionOutput.toLocaleString()})`
+            : '';
+      }
+
+      // ── Init ─────────────────────────────────────────────────────
+
+      function init() {
+        // Restore saved profile
+        const saved = Storage.getStudent();
+        if (saved && saved.profile) {
+          el.profileInput.value = saved.profile;
+        }
+        // Restore API key from sessionStorage into field
+        const key = Storage.getApiKey();
+        if (key) el.apiKeyInput.value = key;
+
+        // Wire events
+        el.bankFileInput.addEventListener('change', (e) => onBankFile(e.target.files[0]));
+        el.apiKeyInput.addEventListener('input', onApiKeyInput);
+        el.profileInput.addEventListener('input', onProfileInput);
+        el.startBtn.addEventListener('click', onStartStudying);
+        el.endSessionBtn.addEventListener('click', transitionToSetup);
+
+        refreshStartButton();
+      }
+
+      // ── Public API ────────────────────────────────────────────────
+      return {
+        init,
+        transitionToStudy,
+        transitionToSetup,
+        refreshStartButton,
+        updateSessionBar,
+        showCoachLoading,
+        showCoachResponse,
+        showCoachError,
+        updateTokenUsage,
+        // Direct panel access for Chunk B
+        get questionPanel() { return el.questionPanel; },
+        get coachContent()  { return el.coachContent;  },
+      };
+    })();
+
+
+    /* ============================================================
+       INIT
+       ============================================================ */
+    document.addEventListener('DOMContentLoaded', () => {
+      UI.init();
+    });
+
+  </script>
+</body>
+</html>

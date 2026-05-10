@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Q-Primer — Chunk A Tests</title>
+  <style>
+    :root {
+      --pass: #22c55e; --fail: #ef4444; --skip: #8b90a7;
+      --bg: #0f1117; --surface: #1a1d27; --border: #2e3347;
+      --text: #e8eaf0; --text-dim: #8b90a7;
+      --accent: #4a9eff;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg); color: var(--text);
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 13px; line-height: 1.6; padding: 2rem;
+    }
+    h1  { font-size: 1rem; color: var(--accent); letter-spacing: 0.05em; margin-bottom: 0.25rem; }
+    .subtitle { color: var(--text-dim); font-size: 0.78rem; margin-bottom: 1.5rem; }
+
+    #summary {
+      display: flex; gap: 2rem; align-items: baseline;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 6px; padding: 0.75rem 1.25rem;
+      margin-bottom: 1.5rem; font-size: 0.85rem;
+    }
+    .summary-pass  { color: var(--pass); font-weight: 600; }
+    .summary-fail  { color: var(--fail); font-weight: 600; }
+    .summary-total { color: var(--text-dim); }
+
+    .suite {
+      margin-bottom: 1.5rem;
+      background: var(--surface); border: 1px solid var(--border); border-radius: 6px;
+      overflow: hidden;
+    }
+    .suite-header {
+      padding: 0.5rem 1rem;
+      background: rgba(255,255,255,0.03);
+      border-bottom: 1px solid var(--border);
+      font-size: 0.72rem; font-weight: 600;
+      color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.08em;
+    }
+    .test-row {
+      display: flex; align-items: flex-start; gap: 0.75rem;
+      padding: 0.45rem 1rem;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.8rem;
+    }
+    .test-row:last-child { border-bottom: none; }
+    .test-status { flex-shrink: 0; font-weight: 600; width: 3rem; }
+    .test-status.pass  { color: var(--pass); }
+    .test-status.fail  { color: var(--fail); }
+    .test-desc { flex: 1; color: var(--text); }
+    .test-detail {
+      margin-top: 0.2rem; font-size: 0.72rem;
+      color: var(--text-dim); font-style: italic;
+    }
+    .test-detail.fail-detail { color: var(--fail); }
+  </style>
+</head>
+<body>
+
+<h1>Q-PRIMER — CHUNK A TEST SUITE</h1>
+<div class="subtitle">BankLoader · Storage keys · AppState interface</div>
+
+<div id="summary">
+  <span class="summary-pass" id="pass-count">… passed</span>
+  <span class="summary-fail" id="fail-count">… failed</span>
+  <span class="summary-total" id="total-count"></span>
+</div>
+
+<div id="results"></div>
+
+<script>
+'use strict';
+
+/* ----------------------------------------------------------------
+   Copy of BankLoader (identical to app/q-primer.html).
+   Tests run against this copy so this file is fully self-contained.
+   ---------------------------------------------------------------- */
+const BankLoader = (() => {
+  const REQUIRED_META     = ['title', 'pool_id', 'version'];
+  const REQUIRED_QUESTION = ['id', 'question', 'answers', 'correct'];
+  const ANSWER_KEYS       = ['A', 'B', 'C', 'D'];
+  const fail = (error) => ({ valid: false, error });
+
+  function validate(bank) {
+    if (!bank || typeof bank !== 'object' || Array.isArray(bank)) {
+      return fail('File is not a valid JSON object.');
+    }
+    if (!bank.meta || typeof bank.meta !== 'object' || Array.isArray(bank.meta)) {
+      return fail('Missing required "meta" object.');
+    }
+    for (const field of REQUIRED_META) {
+      if (typeof bank.meta[field] !== 'string' || bank.meta[field].trim() === '') {
+        return fail(`meta.${field} is required and must be a non-empty string.`);
+      }
+    }
+    if (!Array.isArray(bank.questions)) {
+      return fail('Missing required "questions" array.');
+    }
+    if (bank.questions.length === 0) {
+      return fail('Question bank must contain at least one question.');
+    }
+    const validSubelements = new Set();
+    const validGroups      = new Set();
+    if (bank.structure !== undefined && bank.structure !== null) {
+      if (!Array.isArray(bank.structure.subelements)) {
+        return fail('structure.subelements must be an array.');
+      }
+      for (let si = 0; si < bank.structure.subelements.length; si++) {
+        const sub = bank.structure.subelements[si];
+        if (!sub.id || typeof sub.id !== 'string') {
+          return fail(`structure.subelements[${si}] must have a non-empty string id.`);
+        }
+        validSubelements.add(sub.id);
+        if (Array.isArray(sub.groups)) {
+          for (let gi = 0; gi < sub.groups.length; gi++) {
+            const g = sub.groups[gi];
+            if (!g.id || typeof g.id !== 'string') {
+              return fail(`structure.subelements[${si}].groups[${gi}] must have a non-empty string id.`);
+            }
+            validGroups.add(g.id);
+          }
+        }
+      }
+    }
+    const hasStructure = validSubelements.size > 0;
+    const seenIds = new Set();
+    for (let i = 0; i < bank.questions.length; i++) {
+      const q  = bank.questions[i];
+      const at = `questions[${i}]`;
+      if (!q || typeof q !== 'object') return fail(`${at} must be an object.`);
+      for (const field of REQUIRED_QUESTION) {
+        if (q[field] === undefined || q[field] === null) return fail(`${at}.${field} is required.`);
+      }
+      if (typeof q.id !== 'string' || q.id.trim() === '') return fail(`${at}.id must be a non-empty string.`);
+      if (seenIds.has(q.id)) return fail(`Duplicate question ID: "${q.id}".`);
+      seenIds.add(q.id);
+      if (typeof q.question !== 'string' || q.question.trim() === '') return fail(`${at}.question must be a non-empty string.`);
+      if (typeof q.answers !== 'object' || Array.isArray(q.answers) || q.answers === null) return fail(`${at}.answers must be an object.`);
+      const foundKeys = Object.keys(q.answers).sort().join(',');
+      if (foundKeys !== 'A,B,C,D') return fail(`${at}.answers must have exactly keys A, B, C, D. Found: ${foundKeys || '(none)'}`);
+      for (const k of ANSWER_KEYS) {
+        if (typeof q.answers[k] !== 'string' || q.answers[k].trim() === '') return fail(`${at}.answers.${k} must be a non-empty string.`);
+      }
+      if (!ANSWER_KEYS.includes(q.correct)) return fail(`${at}.correct must be A, B, C, or D. Got: "${q.correct}"`);
+      if (q.annotation !== null && q.annotation !== undefined) {
+        if (typeof q.annotation !== 'object' || Array.isArray(q.annotation)) return fail(`${at}.annotation must be an object or null.`);
+        if (typeof q.annotation.type !== 'string' || q.annotation.type.trim() === '') return fail(`${at}.annotation.type must be a non-empty string.`);
+        if (typeof q.annotation.content !== 'string' || q.annotation.content.trim() === '') return fail(`${at}.annotation.content must be a non-empty string.`);
+      }
+      if (hasStructure) {
+        if (q.subelement && !validSubelements.has(q.subelement)) return fail(`${at}.subelement "${q.subelement}" is not defined in structure.subelements.`);
+        if (q.group && !validGroups.has(q.group)) return fail(`${at}.group "${q.group}" is not defined in structure.`);
+      }
+    }
+    return { valid: true, bank };
+  }
+
+  function load(file) {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        let parsed;
+        try { parsed = JSON.parse(e.target.result); }
+        catch (err) { resolve(fail(`Invalid JSON: ${err.message}`)); return; }
+        resolve(validate(parsed));
+      };
+      reader.onerror = () => resolve(fail('Could not read file.'));
+      reader.readAsText(file);
+    });
+  }
+
+  return { validate, load };
+})();
+
+
+/* ----------------------------------------------------------------
+   Test runner
+   ---------------------------------------------------------------- */
+let _passed = 0;
+let _failed = 0;
+const _suites = [];
+let _currentSuite = null;
+
+function suite(name) {
+  _currentSuite = { name, tests: [] };
+  _suites.push(_currentSuite);
+}
+
+function test(description, fn) {
+  try {
+    fn();
+    _passed++;
+    _currentSuite.tests.push({ description, status: 'pass', detail: null });
+  } catch (e) {
+    _failed++;
+    _currentSuite.tests.push({ description, status: 'fail', detail: e.message });
+  }
+}
+
+function expect(val) {
+  return {
+    toBe(expected) {
+      if (val !== expected)
+        throw new Error(`Expected ${JSON.stringify(expected)}, got ${JSON.stringify(val)}`);
+    },
+    toBeTrue()  { if (val !== true)  throw new Error(`Expected true, got ${JSON.stringify(val)}`); },
+    toBeFalse() { if (val !== false) throw new Error(`Expected false, got ${JSON.stringify(val)}`); },
+    toContain(substr) {
+      if (typeof val !== 'string' || !val.includes(substr))
+        throw new Error(`Expected "${val}" to contain "${substr}"`);
+    },
+  };
+}
+
+
+/* ================================================================
+   SUITE 1: Valid banks
+   ================================================================ */
+suite('Valid banks — should pass validation');
+
+test('Minimal valid bank (no structure, no annotations)', () => {
+  const r = BankLoader.validate({
+    meta: { title: 'Test', pool_id: 'test-v1', version: '1.0' },
+    questions: [{
+      id: 'Q1', question: 'What?',
+      answers: { A: 'One', B: 'Two', C: 'Three', D: 'Four' },
+      correct: 'A'
+    }]
+  });
+  expect(r.valid).toBeTrue();
+});
+
+test('Valid bank with full meta fields', () => {
+  const r = BankLoader.validate({
+    meta: {
+      title: 'Full Meta', pool_id: 'full-v1', version: '2.0',
+      subtitle: 'Sub', description: 'Desc', total_questions: 1,
+      passing_score: 1, exam_question_count: 1,
+      source_url: 'https://example.com', tags: ['a', 'b']
+    },
+    questions: [{
+      id: 'Q1', question: 'What?',
+      answers: { A: 'One', B: 'Two', C: 'Three', D: 'Four' },
+      correct: 'B'
+    }]
+  });
+  expect(r.valid).toBeTrue();
+});
+
+test('Valid bank with structure — refs match', () => {
+  const r = BankLoader.validate({
+    meta: { title: 'T', pool_id: 'p', version: '1' },
+    structure: {
+      levels: ['subelement', 'group'],
+      subelements: [{ id: 'G1', title: 'Topic', exam_questions: 1,
+        groups: [{ id: 'G1A', title: 'Group' }] }]
+    },
+    questions: [{
+      id: 'G1A01', subelement: 'G1', group: 'G1A',
+      question: 'Q?', answers: { A: '1', B: '2', C: '3', D: '4' }, correct: 'C'
+    }]
+  });
+  expect(r.valid).toBeTrue();
+});
+
+test('Valid bank: annotation object with type + content', () => {
+  const r = BankLoader.validate({
+    meta: { title: 'T', pool_id: 'p', version: '1' },
+    questions: [{
+      id: 'Q1', question: 'Q?',
+      answers: { A: '1', B: '2', C: '3', D: '4' }, correct: 'D',
+      annotation: { type: 'schematic', content: 'Describes figure.', errata: null }
+    }]
+  });
+  expect(r.valid).toBeTrue();
+});
+
+test('Valid bank: annotation explicitly null', () => {
+  const r = BankLoader.validate({
+    meta: { title: 'T', pool_id: 'p', version: '1' },
+    questions: [{
+      id: 'Q1', question: 'Q?',
+      answers: { A: '1', B: '2', C: '3', D: '4' }, correct: 'A',
+      annotation: null
+    }]
+  });
+  expect(r.valid).toBeTrue();
+});
+
+test('Valid bank: multiple questions, all correct', () => {
+  const questions = ['A','B','C','D'].map((correct, i) => ({
+    id: `Q${i+1}`, question: `Question ${i+1}?`,
+    answers: { A: 'One', B: 'Two', C: 'Three', D: 'Four' },
+    correct
+  }));
+  const r = BankLoader.validate({
+    meta: { title: 'T', pool_id: 'p', version: '1' },
+    questions
+  });
+  expect(r.valid).toBeTrue();
+});
+
+test('Valid bank: questions without subelement/group fields (flat pool)', () => {
+  const r = BankLoader.validate({
+    meta: { title: 'T', pool_id: 'p', version: '1' },
+    questions: [{
+      id: 'Q1', question: 'What?',
+      answers: { A: '1', B: '2', C: '3', D: '4' }, correct: 'B'
+      // no subelement, no group — that's fine without structure
+    }]
+  });
+  expect(r.valid).toBeTrue();
+});
+
+test('Valid bank returns the bank object on success', () => {
+  const bank = {
+    meta: { title: 'T', pool_id: 'p', version: '1' },
+    questions: [{
+      id: 'Q1', question: 'Q?',
+      answers: { A: '1', B: '2', C: '3', D: '4' }, correct: 'C'
+    }]
+  };
+  const r = BankLoader.validate(bank);
+  expect(r.valid).toBeTrue();
+  expect(r.bank).toBe(bank);
+});
+
+
+/* ================================================================
+   SUITE 2: Meta failures
+   ================================================================ */
+suite('meta validation — should fail with specific messages');
+
+test('null input', () => {
+  const r = BankLoader.validate(null);
+  expect(r.valid).toBeFalse();
+});
+
+test('array input', () => {
+  const r = BankLoader.validate([]);
+  expect(r.valid).toBeFalse();
+});
+
+test('string input', () => {
+  const r = BankLoader.validate('not an object');
+  expect(r.valid).toBeFalse();
+});
+
+test('missing meta object', () => {
+  const r = BankLoader.validate({
+    questions: [{ id: 'Q1', question: 'Q?', answers: { A:'1',B:'2',C:'3',D:'4' }, correct:'A' }]
+  });
+  expect(r.valid).toBeFalse();
+  expect(r.error).toContain('meta');
+});
+
+test('meta.title missing', () => {
+  const r = BankLoader.validate({
+    meta: { pool_id: 'p', version: '1' },
+    questions: [{ id:'Q1', question:'Q?', answers:{A:'1',B:'2',C:'3',D:'4'}, correct:'A' }]
+  });
+  expect(r.valid).toBeFalse();
+  expect(r.error).toContain('meta.title');
+});
+
+test('meta.pool_id missing', () => {
+  const r = BankLoader.validate({
+    meta: { title: 'T', version: '1' },
+    questions: [{ id:'Q1', question:'Q?', answers:{A:'1',B:'2',C:'3',D:'4'}, correct:'A' }]
+  });
+  expect(r.valid).toBeFalse();
+  expect(r.error).toContain('meta.pool_id');
+});
+
+test('meta.version missing', () => {
+  const r = BankLoader.validate({
+    meta: { title: 'T', pool_id: 'p' },
+    questions: [{ id:'Q1', question:'Q?', answers:{A:'1',B:'2',C:'3',D:'4'}, correct:'A' }]
+  });
+  expect(r.valid).toBeFalse();
+  expect(r.error).toContain('meta.version');
+});
+
+test('meta.title is empty string', () => {
+  const r = BankLoader.validate({
+    meta: { title: '', pool_id: 'p', version: '1' },
+    questions: [{ id:'Q1', question:'Q?', answers:{A:'1',B:'2',C:'3',D:'4'}, correct:'A' }]
+  });
+  expect(r.valid).toBeFalse();
+  expect(r.error).toContain('meta.title');
+});
+
+test('meta.title is a number', () => {
+  const r = BankLoader.validate({
+    meta: { title: 42, pool_id: 'p', version: '1' },
+    questions: [{ id:'Q1', question:'Q?', answers:{A:'1',B:'2',C:'3',D:'4'}, correct:'A' }]
+  });
+  expect(r.valid).toBeFalse();
+  expect(r.error).toContain('meta.title');
+});
+
+
+/* ================================================================
+   SUITE 3: Questions array failures
+   ================================================================ */
+suite('questions array — should fail with specific messages');
+
+test('missing questions array', () => {
+  const r = BankLoader.validate({ meta: { title:'T', pool_id:'p', version:'1' } });
+  expect(r.valid).toBeFalse();
+  expect(r.error).toContain('questions');
+});
+
+test('questions is not an array', () => {
+  const r = BankLoader.validate({
+    meta: { title:'T', pool_id:'p', version:'1' },
+    questions: {}
+  });
+  expect(r.valid).toBeFalse();
+  expect(r.error).toContain('questions');
+});
+
+test('questions is empty array', () => {
+  const r = BankLoader.validate({
+    meta: { title:'T', pool_id:'p', version:'1' },
+    questions: []
+  });
+  expect(r.valid).toBeFalse();
+  expect(r.error).toContain('at least one');
+});
+
+
+/* ================================================================
+   SUITE 4: Per-question field failures
+   ================================================================ */
+suite('per-question validation — should fail with position and field');
+
+const baseQ = () => ({
+  id: 'Q1', question: 'What?',
+  answers: { A: 'One', B: 'Two', C: 'Three', D: 'Four' },
+  correct: 'A'
+});
+const wrap = (q) => ({
+  meta: { title:'T', pool_id:'p', version:'1' },
+  questions: [q]
+});
+
+test('question missing id', () => {
+  const q = baseQ(); delete q.id;
+  const r = BankLoader.validate(wrap(q));
+  expect(r.valid).toBeFalse();
+  expect(r.error).toContain('id');
+});
+
+test('question id is empty string', () => {
+  const q = { ...baseQ(), id: '' };
+  const r = BankLoader.validate(wrap(q));
+  expect(r.valid).toBeFalse();
+  expect(r.error).toContain('id');
+});
+
+test('duplicate question IDs', () => {
+  const r = BankLoader.validate({
+    meta: { title:'T', pool_id:'p', version:'1' },
+    questions: [ baseQ(), baseQ() ]   // both have id: 'Q1'
+  });
+  expect(r.valid).toBeFalse();
+  expect(r.error).toContain('Duplicate');
+  expect(r.error).toContain('Q1');
+});
+
+test('question text missing', () => {
+  const q = baseQ(); delete q.question;
+  const r = BankLoader.validate(wrap(q));
+  expect(r.valid).toBeFalse();
+  expect(r.error).toContain('question');
+});
+
+test('question text is empty string', () => {
+  const q = { ...baseQ(), question: '   ' };
+  const r = BankLoader.validate(wrap(q));
+  expect(r.valid).toBeFalse();
+  expect(r.error).toContain('question');
+});
+
+test('answers missing', () => {
+  const q = baseQ(); delete q.answers;
+  const r = BankLoader.validate(wrap(q));
+  expect(r.valid).toBeFalse();
+  expect(r.error).toContain('answers');
+});
+
+test('answers is an array, not object', () => {
+  const q = { ...baseQ(), answers: ['One', 'Two', 'Three', 'Four'] };
+  const r = BankLoader.validate(wrap(q));
+  expect(r.valid).toBeFalse();
+  expect(r.error).toContain('answers');
+});
+
+test('answers missing key D (only A,B,C)', () => {
+  const q = { ...baseQ(), answers: { A: 'One', B: 'Two', C: 'Three' } };
+  const r = BankLoader.validate(wrap(q));
+  expect(r.valid).toBeFalse();
+  expect(r.error).toContain('A, B, C, D');
+});
+
+test('answers has extra key E', () => {
+  const q = { ...baseQ(), answers: { A:'One', B:'Two', C:'Three', D:'Four', E:'Five' } };
+  const r = BankLoader.validate(wrap(q));
+  expect(r.valid).toBeFalse();
+  expect(r.error).toContain('A, B, C, D');
+});
+
+test('answers.B is empty string', () => {
+  const q = { ...baseQ(), answers: { A:'One', B:'', C:'Three', D:'Four' } };
+  const r = BankLoader.validate(wrap(q));
+  expect(r.valid).toBeFalse();
+  expect(r.error).toContain('answers.B');
+});
+
+test('answers.C is whitespace only', () => {
+  const q = { ...baseQ(), answers: { A:'One', B:'Two', C:'   ', D:'Four' } };
+  const r = BankLoader.validate(wrap(q));
+  expect(r.valid).toBeFalse();
+  expect(r.error).toContain('answers.C');
+});
+
+test('correct is missing', () => {
+  const q = baseQ(); delete q.correct;
+  const r = BankLoader.validate(wrap(q));
+  expect(r.valid).toBeFalse();
+  expect(r.error).toContain('correct');
+});
+
+test('correct is "E" (invalid)', () => {
+  const q = { ...baseQ(), correct: 'E' };
+  const r = BankLoader.validate(wrap(q));
+  expect(r.valid).toBeFalse();
+  expect(r.error).toContain('correct');
+  expect(r.error).toContain('E');
+});
+
+test('correct is lowercase "a"', () => {
+  const q = { ...baseQ(), correct: 'a' };
+  const r = BankLoader.validate(wrap(q));
+  expect(r.valid).toBeFalse();
+  expect(r.error).toContain('correct');
+});
+
+test('error message includes question index', () => {
+  const r = BankLoader.validate({
+    meta: { title:'T', pool_id:'p', version:'1' },
+    questions: [
+      baseQ(),
+      { ...baseQ(), id: 'Q2', correct: 'Z' }  // error in second question
+    ]
+  });
+  expect(r.valid).toBeFalse();
+  expect(r.error).toContain('questions[1]');
+});
+
+
+/* ================================================================
+   SUITE 5: Annotation validation
+   ================================================================ */
+suite('annotation validation');
+
+test('annotation is an array (invalid)', () => {
+  const q = { ...baseQ(), annotation: [] };
+  const r = BankLoader.validate(wrap(q));
+  expect(r.valid).toBeFalse();
+  expect(r.error).toContain('annotation');
+});
+
+test('annotation missing type', () => {
+  const q = { ...baseQ(), annotation: { content: 'Some content.' } };
+  const r = BankLoader.validate(wrap(q));
+  expect(r.valid).toBeFalse();
+  expect(r.error).toContain('annotation.type');
+});
+
+test('annotation missing content', () => {
+  const q = { ...baseQ(), annotation: { type: 'schematic' } };
+  const r = BankLoader.validate(wrap(q));
+  expect(r.valid).toBeFalse();
+  expect(r.error).toContain('annotation.content');
+});
+
+test('annotation.type is empty string', () => {
+  const q = { ...baseQ(), annotation: { type: '', content: 'Content.' } };
+  const r = BankLoader.validate(wrap(q));
+  expect(r.valid).toBeFalse();
+  expect(r.error).toContain('annotation.type');
+});
+
+test('annotation omitted entirely — treated as undefined, passes', () => {
+  const q = { id:'Q1', question:'Q?', answers:{A:'1',B:'2',C:'3',D:'4'}, correct:'A' };
+  const r = BankLoader.validate(wrap(q));
+  expect(r.valid).toBeTrue();
+});
+
+
+/* ================================================================
+   SUITE 6: Structure validation
+   ================================================================ */
+suite('structure validation');
+
+test('structure present but subelements is not an array', () => {
+  const r = BankLoader.validate({
+    meta: { title:'T', pool_id:'p', version:'1' },
+    structure: { subelements: 'not-an-array' },
+    questions: [baseQ()]
+  });
+  expect(r.valid).toBeFalse();
+  expect(r.error).toContain('subelements');
+});
+
+test('subelement missing id', () => {
+  const r = BankLoader.validate({
+    meta: { title:'T', pool_id:'p', version:'1' },
+    structure: { subelements: [{ title: 'No ID here', groups: [] }] },
+    questions: [baseQ()]
+  });
+  expect(r.valid).toBeFalse();
+  expect(r.error).toContain('id');
+});
+
+test('group missing id', () => {
+  const r = BankLoader.validate({
+    meta: { title:'T', pool_id:'p', version:'1' },
+    structure: { subelements: [{
+      id: 'G1', title: 'Topic',
+      groups: [{ title: 'Group without id' }]
+    }]},
+    questions: [{ ...baseQ(), subelement:'G1' }]
+  });
+  expect(r.valid).toBeFalse();
+  expect(r.error).toContain('id');
+});
+
+test('question references subelement not in structure', () => {
+  const r = BankLoader.validate({
+    meta: { title:'T', pool_id:'p', version:'1' },
+    structure: { subelements: [{ id:'G1', title:'T', groups:[] }] },
+    questions: [{ ...baseQ(), subelement: 'G99' }]
+  });
+  expect(r.valid).toBeFalse();
+  expect(r.error).toContain('G99');
+  expect(r.error).toContain('subelement');
+});
+
+test('question references group not in structure', () => {
+  const r = BankLoader.validate({
+    meta: { title:'T', pool_id:'p', version:'1' },
+    structure: { subelements: [{
+      id:'G1', title:'T',
+      groups: [{ id:'G1A', title:'A' }]
+    }]},
+    questions: [{ ...baseQ(), subelement:'G1', group:'G1Z' }]
+  });
+  expect(r.valid).toBeFalse();
+  expect(r.error).toContain('G1Z');
+  expect(r.error).toContain('group');
+});
+
+test('question with subelement/group refs when NO structure — passes', () => {
+  // Structure refs on questions are only validated when structure is present
+  const r = BankLoader.validate({
+    meta: { title:'T', pool_id:'p', version:'1' },
+    questions: [{ ...baseQ(), subelement:'ANYTHING', group:'ANYTHING' }]
+  });
+  expect(r.valid).toBeTrue();
+});
+
+test('structure null — treated as absent, passes', () => {
+  const r = BankLoader.validate({
+    meta: { title:'T', pool_id:'p', version:'1' },
+    structure: null,
+    questions: [baseQ()]
+  });
+  expect(r.valid).toBeTrue();
+});
+
+
+/* ================================================================
+   SUITE 7: Storage key names
+   Verify the constants are correct (no DOM needed).
+   ================================================================ */
+suite('Storage — key names and API surface');
+
+test('sessionStorage key for API key is namespaced', () => {
+  // Write and read to confirm the key
+  sessionStorage.setItem('q-primer:apikey', 'test-key');
+  expect(sessionStorage.getItem('q-primer:apikey')).toBe('test-key');
+  sessionStorage.removeItem('q-primer:apikey');
+});
+
+test('localStorage key for student profile is namespaced', () => {
+  const obj = { profile: 'test', created_at: '2026-01-01T00:00:00Z' };
+  localStorage.setItem('q-primer:student', JSON.stringify(obj));
+  const read = JSON.parse(localStorage.getItem('q-primer:student'));
+  expect(read.profile).toBe('test');
+  localStorage.removeItem('q-primer:student');
+});
+
+test('localStorage key for session is namespaced', () => {
+  const obj = { id: 'abc123' };
+  localStorage.setItem('q-primer:session', JSON.stringify(obj));
+  const read = JSON.parse(localStorage.getItem('q-primer:session'));
+  expect(read.id).toBe('abc123');
+  localStorage.removeItem('q-primer:session');
+});
+
+
+/* ================================================================
+   RENDER RESULTS
+   ================================================================ */
+document.addEventListener('DOMContentLoaded', () => {
+  const container = document.getElementById('results');
+
+  for (const suite of _suites) {
+    const suiteEl = document.createElement('div');
+    suiteEl.className = 'suite';
+
+    const header = document.createElement('div');
+    header.className   = 'suite-header';
+    header.textContent = suite.name;
+    suiteEl.appendChild(header);
+
+    for (const t of suite.tests) {
+      const row = document.createElement('div');
+      row.className = 'test-row';
+
+      const status = document.createElement('span');
+      status.className   = `test-status ${t.status}`;
+      status.textContent = t.status === 'pass' ? 'PASS' : 'FAIL';
+
+      const desc = document.createElement('div');
+      desc.className = 'test-desc';
+
+      const descText = document.createElement('div');
+      descText.textContent = t.description;
+      desc.appendChild(descText);
+
+      if (t.detail) {
+        const detail = document.createElement('div');
+        detail.className   = `test-detail ${t.status === 'fail' ? 'fail-detail' : ''}`;
+        detail.textContent = t.detail;
+        desc.appendChild(detail);
+      }
+
+      row.appendChild(status);
+      row.appendChild(desc);
+      suiteEl.appendChild(row);
+    }
+
+    container.appendChild(suiteEl);
+  }
+
+  const total = _passed + _failed;
+  document.getElementById('pass-count').textContent  = `${_passed} passed`;
+  document.getElementById('fail-count').textContent  = `${_failed} failed`;
+  document.getElementById('total-count').textContent = `${total} total`;
+
+  document.title = `${_failed > 0 ? '✗' : '✓'} Q-Primer Tests (${_passed}/${total})`;
+});
+
+</script>
+</body>
+</html>

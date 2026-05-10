@@ -1,0 +1,91 @@
+{
+  "meta": {
+    "title": "Your Exam Title Here",
+    "subtitle": "Optional subtitle or pool edition",
+    "pool_id": "your-exam-name-year-v1",
+    "version": "1.0",
+    "effective_from": "2024-01-01",
+    "effective_to":   "2026-12-31",
+    "total_questions": 3,
+    "passing_score": 2,
+    "exam_question_count": 3,
+    "source_url": "https://example.com/question-pool",
+    "description": "A short description of the exam. The AI coach uses this to understand context.",
+    "tags": ["example", "template"]
+  },
+
+  "structure": {
+    "levels": ["subelement", "group"],
+    "subelements": [
+      {
+        "id": "T1",
+        "title": "Topic Area One",
+        "exam_questions": 2,
+        "groups": [
+          { "id": "T1A", "title": "First group within topic one" },
+          { "id": "T1B", "title": "Second group within topic one" }
+        ]
+      },
+      {
+        "id": "T2",
+        "title": "Topic Area Two",
+        "exam_questions": 1,
+        "groups": [
+          { "id": "T2A", "title": "First group within topic two" }
+        ]
+      }
+    ]
+  },
+
+  "questions": [
+    {
+      "id": "T1A01",
+      "subelement": "T1",
+      "group": "T1A",
+      "question": "What is the capital of France?",
+      "answers": {
+        "A": "Berlin",
+        "B": "Madrid",
+        "C": "Paris",
+        "D": "Rome"
+      },
+      "correct": "C",
+      "reference": "Geography 101, Chapter 3",
+      "annotation": null
+    },
+    {
+      "id": "T1B01",
+      "subelement": "T1",
+      "group": "T1B",
+      "question": "Which element has the chemical symbol Au?",
+      "answers": {
+        "A": "Silver",
+        "B": "Aluminum",
+        "C": "Argon",
+        "D": "Gold"
+      },
+      "correct": "D",
+      "reference": "Periodic Table",
+      "annotation": null
+    },
+    {
+      "id": "T2A01",
+      "subelement": "T2",
+      "group": "T2A",
+      "question": "In the diagram shown, which component is a varactor diode?",
+      "answers": {
+        "A": "Component 1 — plain single-bar symbol",
+        "B": "Component 2 — bent cathode ends",
+        "C": "Component 3 — double-bar cathode",
+        "D": "Component 4 — circle with bar"
+      },
+      "correct": "C",
+      "reference": "Figure T2-1",
+      "annotation": {
+        "type": "schematic",
+        "content": "Figure T2-1: Component 3 shows a double-bar cathode (two parallel lines), identifying it as a varactor/varicap diode. Distinguished from zener (bent cathode ends, Component 2) and rectifier (plain single bar, Component 1).",
+        "errata": null
+      }
+    }
+  ]
+}
