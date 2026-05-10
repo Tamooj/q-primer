@@ -30,7 +30,7 @@ def main():
         sys.exit(1)
 
     staging_name = sys.argv[1]
-    script_dir   = Path(__file__).parent
+    script_dir   = Path(__file__).resolve().parent
     staging      = script_dir / staging_name
 
     if not staging.is_dir():
@@ -90,18 +90,19 @@ def main():
     out_dir.mkdir(exist_ok=True)
     out_path = out_dir / f"{pool_id}.zip"
 
-    # Build the archive
+    # Build the archive (deduplicate figure filenames — multiple questions may share one figure)
+    unique_figures = dict.fromkeys(filename for _, filename in figure_refs)  # preserves order
     with zipfile.ZipFile(out_path, "w", zipfile.ZIP_DEFLATED) as zf:
         zf.write(bank_json_path, "bank.json")
-        for _, filename in figure_refs:
+        for filename in unique_figures:
             zf.write(figures_dir / filename, f"figures/{filename}")
 
     # Report
     print(f"Created: {out_path.relative_to(script_dir.parent)}")
     print(f"  bank.json")
-    for _, filename in sorted(set(figure_refs), key=lambda x: x[1]):
+    for filename in sorted(unique_figures):
         print(f"  figures/{filename}")
-    print(f"  ({len(set(f for _, f in figure_refs))} figure(s), "
+    print(f"  ({len(unique_figures)} figure(s), "
           f"{len(bank.get('questions', []))} question(s))")
 
 

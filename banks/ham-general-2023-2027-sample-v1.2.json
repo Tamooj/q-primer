@@ -3,7 +3,7 @@
     "title": "Ham Radio General Class",
     "subtitle": "FCC Element 3 Question Pool — Development Sample",
     "pool_id": "fcc-element3-2023-2027-sample",
-    "version": "1.1",
+    "version": "1.2",
     "effective_from": "2023-07-01",
     "effective_to": "2027-06-30",
     "total_questions": 31,
@@ -495,6 +495,10 @@
       "subelement": "G7",
       "group": "G7A",
       "question": "Which symbol in figure G7-1 represents a field effect transistor?",
+      "figure": {
+        "file": "G7-1.png",
+        "alt": "Figure G7-1: Two-stage RF amplifier schematic with eleven numbered component symbols including transistors, diodes, resistors, capacitors, inductors, and a transformer"
+      },
       "answers": {
         "A": "Symbol 2",
         "B": "Symbol 5",
@@ -514,6 +518,10 @@
       "subelement": "G7",
       "group": "G7A",
       "question": "Which symbol in figure G7-1 represents a Zener diode?",
+      "figure": {
+        "file": "G7-1.png",
+        "alt": "Figure G7-1: Two-stage RF amplifier schematic with eleven numbered component symbols including transistors, diodes, resistors, capacitors, inductors, and a transformer"
+      },
       "answers": {
         "A": "Symbol 4",
         "B": "Symbol 1",
@@ -533,6 +541,10 @@
       "subelement": "G7",
       "group": "G7A",
       "question": "Which symbol in figure G7-1 represents an NPN junction transistor?",
+      "figure": {
+        "file": "G7-1.png",
+        "alt": "Figure G7-1: Two-stage RF amplifier schematic with eleven numbered component symbols including transistors, diodes, resistors, capacitors, inductors, and a transformer"
+      },
       "answers": {
         "A": "Symbol 1",
         "B": "Symbol 2",
@@ -552,6 +564,10 @@
       "subelement": "G7",
       "group": "G7A",
       "question": "Which symbol in Figure G7-1 represents a solid core transformer?",
+      "figure": {
+        "file": "G7-1.png",
+        "alt": "Figure G7-1: Two-stage RF amplifier schematic with eleven numbered component symbols including transistors, diodes, resistors, capacitors, inductors, and a transformer"
+      },
       "answers": {
         "A": "Symbol 4",
         "B": "Symbol 7",
@@ -571,6 +587,10 @@
       "subelement": "G7",
       "group": "G7A",
       "question": "Which symbol in Figure G7-1 represents a tapped inductor?",
+      "figure": {
+        "file": "G7-1.png",
+        "alt": "Figure G7-1: Two-stage RF amplifier schematic with eleven numbered component symbols including transistors, diodes, resistors, capacitors, inductors, and a transformer"
+      },
       "answers": {
         "A": "Symbol 7",
         "B": "Symbol 11",

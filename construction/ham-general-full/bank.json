@@ -1,0 +1,609 @@
+{
+  "meta": {
+    "title": "Ham Radio General Class",
+    "subtitle": "FCC Element 3 Question Pool — Development Sample",
+    "pool_id": "fcc-element3-2023-2027-sample",
+    "version": "1.2",
+    "effective_from": "2023-07-01",
+    "effective_to": "2027-06-30",
+    "total_questions": 31,
+    "passing_score": null,
+    "exam_question_count": null,
+    "source_url": "https://www.arrl.org/general-class-question-pool",
+    "description": "Official FCC question pool for the Amateur Radio General Class license examination (2023-2027 pool, second errata applied). This sample contains representative questions from subelements G1 (Commission Rules), G5B (Electrical Principles: decibels and power calculations), G6B (Circuit Components), and G7A (Practical Circuits: power supplies and schematic symbols). It is intended for Q-Primer application development and testing only — not a complete study resource.",
+    "tags": ["amateur radio", "FCC", "RF", "electronics", "sample"]
+  },
+  "structure": {
+    "levels": ["subelement", "group"],
+    "subelements": [
+      {
+        "id": "G1",
+        "title": "Commission's Rules",
+        "exam_questions": 5,
+        "groups": [
+          { "id": "G1A", "title": "General class control operator frequency privileges; primary and secondary allocations" },
+          { "id": "G1B", "title": "Antenna structure limitations; good engineering and good amateur practice; beacon operation; prohibited transmissions; retransmitting radio signals" }
+        ]
+      },
+      {
+        "id": "G5",
+        "title": "Electrical Principles",
+        "exam_questions": 3,
+        "groups": [
+          { "id": "G5B", "title": "The decibel; current and voltage dividers; electrical power calculations; sine wave root-mean-square (RMS) values; PEP calculations" }
+        ]
+      },
+      {
+        "id": "G6",
+        "title": "Circuit Components",
+        "exam_questions": 2,
+        "groups": [
+          { "id": "G6B", "title": "Analog and digital integrated circuits (ICs); microwave ICs (MMICs); display devices; RF connectors; ferrite cores" }
+        ]
+      },
+      {
+        "id": "G7",
+        "title": "Practical Circuits",
+        "exam_questions": 3,
+        "groups": [
+          { "id": "G7A", "title": "Power supplies; schematic symbols" }
+        ]
+      }
+    ]
+  },
+  "questions": [
+    {
+      "id": "G1A01",
+      "subelement": "G1",
+      "group": "G1A",
+      "question": "On which HF and/or MF amateur bands are there portions where General class licensees cannot transmit?",
+      "answers": {
+        "A": "60 meters, 30 meters, 17 meters, and 12 meters",
+        "B": "160 meters, 60 meters, 15 meters, and 12 meters",
+        "C": "80 meters, 40 meters, 20 meters, and 15 meters",
+        "D": "80 meters, 20 meters, 15 meters, and 10 meters"
+      },
+      "correct": "C",
+      "reference": "97.301(d)",
+      "annotation": null
+    },
+    {
+      "id": "G1A02",
+      "subelement": "G1",
+      "group": "G1A",
+      "question": "On which of the following bands is phone operation prohibited?",
+      "answers": {
+        "A": "160 meters",
+        "B": "30 meters",
+        "C": "17 meters",
+        "D": "12 meters"
+      },
+      "correct": "B",
+      "reference": "97.305",
+      "annotation": null
+    },
+    {
+      "id": "G1A04",
+      "subelement": "G1",
+      "group": "G1A",
+      "question": "Which of the following amateur bands is restricted to communication only on specific channels, rather than frequency ranges?",
+      "answers": {
+        "A": "11 meters",
+        "B": "12 meters",
+        "C": "30 meters",
+        "D": "60 meters"
+      },
+      "correct": "D",
+      "reference": "97.303(h)",
+      "annotation": null
+    },
+    {
+      "id": "G1A05",
+      "subelement": "G1",
+      "group": "G1A",
+      "question": "On which of the following frequencies are General class licensees prohibited from operating as control operator?",
+      "answers": {
+        "A": "7.125 MHz to 7.175 MHz",
+        "B": "28.000 MHz to 28.025 MHz",
+        "C": "21.275 MHz to 21.300 MHz",
+        "D": "All of the above"
+      },
+      "correct": "A",
+      "reference": "97.301(d)",
+      "annotation": {
+        "type": "errata",
+        "content": "Answer D corrected per April 2023 errata: changed from 'All these choices are correct' to 'All of the above' for consistency with pool formatting conventions. Answer A (7.125–7.175 MHz) is the sole correct answer — the other ranges listed are within General class privileges.",
+        "errata": "April 15, 2023 errata: answer D reworded to 'All of the above' (was 'All these choices are correct')."
+      }
+    },
+    {
+      "id": "G1A06",
+      "subelement": "G1",
+      "group": "G1A",
+      "question": "Which of the following applies when the FCC rules designate the amateur service as a secondary user on a band?",
+      "answers": {
+        "A": "Amateur stations must record the call sign of the primary service station before operating on a frequency assigned to that station",
+        "B": "Amateur stations may use the band only during emergencies",
+        "C": "Amateur stations must not cause harmful interference to primary users and must accept interference from primary users",
+        "D": "Amateur stations may only operate during specific hours of the day, while primary users are permitted 24-hour use of the band"
+      },
+      "correct": "C",
+      "reference": "97.303",
+      "annotation": null
+    },
+    {
+      "id": "G1A08",
+      "subelement": "G1",
+      "group": "G1A",
+      "question": "Which HF bands have segments exclusively allocated to Amateur Extra licensees?",
+      "answers": {
+        "A": "All HF bands",
+        "B": "80 meters, 40 meters, 20 meters, and 15 meters",
+        "C": "All HF bands except 160 meters and 10 meters",
+        "D": "60 meters, 30 meters, 17 meters, and 12 meters"
+      },
+      "correct": "B",
+      "reference": "97.301(b)",
+      "annotation": {
+        "type": "concept",
+        "content": "Common distractor trap: answer A ('All HF bands') sounds plausible but 160 meters and 10 meters have no Extra-exclusive segments — they are fully open to all licensees. Answer D lists the WARC bands plus 60m, which are also fully accessible to General. The Extra-exclusive segments exist only on the four bands with historically highest traffic: 80m, 40m, 20m, and 15m, where they occupy the lower-frequency edges of the voice allocations.",
+        "errata": null
+      }
+    },
+    {
+      "id": "G1A09",
+      "subelement": "G1",
+      "group": "G1A",
+      "question": "Which of the following frequencies is within the General class portion of the 15-meter band?",
+      "answers": {
+        "A": "14250 kHz",
+        "B": "18155 kHz",
+        "C": "21300 kHz",
+        "D": "24900 kHz"
+      },
+      "correct": "C",
+      "reference": "97.301(d)",
+      "annotation": null
+    },
+    {
+      "id": "G1A11",
+      "subelement": "G1",
+      "group": "G1A",
+      "question": "When General class licensees are not permitted to use the entire voice portion of a band, which portion of the voice segment is available to them?",
+      "answers": {
+        "A": "The lower frequency portion",
+        "B": "The upper frequency portion",
+        "C": "The lower frequency portion on frequencies below 7.3 MHz, and the upper portion on frequencies above 14.150 MHz",
+        "D": "The upper frequency portion on frequencies below 7.3 MHz, and the lower portion on frequencies above 14.150 MHz"
+      },
+      "correct": "B",
+      "reference": "97.301",
+      "annotation": null
+    },
+    {
+      "id": "G1B01",
+      "subelement": "G1",
+      "group": "G1B",
+      "question": "What is the maximum height above ground for an antenna structure not near a public use airport without requiring notification to the FAA and registration with the FCC?",
+      "answers": {
+        "A": "50 feet",
+        "B": "100 feet",
+        "C": "200 feet",
+        "D": "250 feet"
+      },
+      "correct": "C",
+      "reference": "97.15(a)",
+      "annotation": {
+        "type": "errata",
+        "content": "Question text corrected per February 2023 errata: 'not' added after 'structure' to clarify the rule applies to structures NOT near an airport. The 200-foot limit triggers FAA notification and FCC registration requirements for structures exceeding it.",
+        "errata": "February 1, 2023 errata: 'not' added after 'structure' in question text."
+      }
+    },
+    {
+      "id": "G1B02",
+      "subelement": "G1",
+      "group": "G1B",
+      "question": "With which of the following conditions must beacon stations comply?",
+      "answers": {
+        "A": "No more than one beacon station may transmit in the same band from the same station location",
+        "B": "The frequency must be coordinated with the National Beacon Organization",
+        "C": "The frequency must be posted on the internet or published in a national periodical",
+        "D": "All these choices are correct"
+      },
+      "correct": "A",
+      "reference": "97.203(b)",
+      "annotation": null
+    },
+    {
+      "id": "G1B04",
+      "subelement": "G1",
+      "group": "G1B",
+      "question": "Which of the following transmissions is permitted for all amateur stations?",
+      "answers": {
+        "A": "Unidentified transmissions of less than 10 seconds duration for test purposes only",
+        "B": "Automatic retransmission of other amateur signals by any amateur station",
+        "C": "Occasional retransmission of weather and propagation forecast information from US government stations",
+        "D": "Encrypted messages, if not intended to facilitate a criminal act"
+      },
+      "correct": "C",
+      "reference": "97.113(c)",
+      "annotation": null
+    },
+    {
+      "id": "G5B01",
+      "subelement": "G5",
+      "group": "G5B",
+      "question": "What dB change represents a factor of two increase or decrease in power?",
+      "answers": {
+        "A": "Approximately 2 dB",
+        "B": "Approximately 3 dB",
+        "C": "Approximately 6 dB",
+        "D": "Approximately 9 dB"
+      },
+      "correct": "B",
+      "reference": null,
+      "annotation": {
+        "type": "calculation",
+        "content": "10 × log10(2) = 10 × 0.301 = 3.01 dB ≈ 3 dB. Key doubles to memorize: 2x power = +3 dB; 4x power = +6 dB; 8x power = +9 dB; 10x power = +10 dB. For voltage/current ratios (into same impedance): 2x voltage = +6 dB (20 × log10(2)). Common distractor: 6 dB is correct for voltage doubling, not power doubling.",
+        "errata": null
+      }
+    },
+    {
+      "id": "G5B03",
+      "subelement": "G5",
+      "group": "G5B",
+      "question": "How many watts of electrical power are consumed if 400 VDC is supplied to an 800-ohm load?",
+      "answers": {
+        "A": "0.5 watts",
+        "B": "200 watts",
+        "C": "400 watts",
+        "D": "3200 watts"
+      },
+      "correct": "B",
+      "reference": null,
+      "annotation": {
+        "type": "calculation",
+        "content": "P = V² / R = (400)² / 800 = 160000 / 800 = 200W. Alternatively: I = V/R = 400/800 = 0.5A; P = V × I = 400 × 0.5 = 200W. Distractor D (3200W) comes from P = V × R (wrong formula). Distractor A (0.5W) comes from using I alone without multiplying by V.",
+        "errata": null
+      }
+    },
+    {
+      "id": "G5B06",
+      "subelement": "G5",
+      "group": "G5B",
+      "question": "What is the PEP produced by 200 volts peak-to-peak across a 50-ohm dummy load?",
+      "answers": {
+        "A": "1.4 watts",
+        "B": "100 watts",
+        "C": "353.5 watts",
+        "D": "400 watts"
+      },
+      "correct": "B",
+      "reference": null,
+      "annotation": {
+        "type": "calculation",
+        "content": "Vpeak-to-peak = 200V → Vpeak = 100V → Vrms = 100 × 0.707 = 70.7V. PEP = Vrms² / R = (70.7)² / 50 = 5000 / 50 = 100W. Shortcut: PEP = (Vp-p)² / (8R) = 40000 / 400 = 100W. Distractor D (400W) comes from using Vpeak directly without converting to Vrms. Distractor C (353.5W) comes from using Vpeak² / R = 10000/50 = 200W... actually 353.5 comes from using Vp-p directly as Vrms: (200)²/50/2 — a chain of errors.",
+        "errata": null
+      }
+    },
+    {
+      "id": "G5B08",
+      "subelement": "G5",
+      "group": "G5B",
+      "question": "What is the peak-to-peak voltage of a sine wave with an RMS voltage of 120 volts?",
+      "answers": {
+        "A": "84.8 volts",
+        "B": "169.7 volts",
+        "C": "240.0 volts",
+        "D": "339.4 volts"
+      },
+      "correct": "D",
+      "reference": null,
+      "annotation": {
+        "type": "calculation",
+        "content": "Vrms = 120V → Vpeak = 120 / 0.707 = 169.7V → Vp-p = 2 × 169.7 = 339.4V. Key chain: Vrms × √2 = Vpeak; Vpeak × 2 = Vp-p. Or directly: Vp-p = Vrms × 2√2 = Vrms × 2.828. Distractor B (169.7V) is Vpeak, not peak-to-peak — the most common error, stopping one step short. Distractor A (84.8V) = Vrms × 0.707, which inverts the direction of the conversion.",
+        "errata": null
+      }
+    },
+    {
+      "id": "G5B09",
+      "subelement": "G5",
+      "group": "G5B",
+      "question": "What is the RMS voltage of a sine wave with a value of 17 volts peak?",
+      "answers": {
+        "A": "8.5 volts",
+        "B": "12 volts",
+        "C": "24 volts",
+        "D": "34 volts"
+      },
+      "correct": "B",
+      "reference": null,
+      "annotation": {
+        "type": "calculation",
+        "content": "Vrms = Vpeak × 0.707 = 17 × 0.707 = 12.02V ≈ 12V. Distractor D (34V) = Vpeak × 2, which is Vp-p not Vrms. Distractor A (8.5V) = Vpeak / 2, confusing RMS with average or half-wave. The 0.707 factor comes from 1/√2 — the RMS value of a sine wave is always less than its peak.",
+        "errata": null
+      }
+    },
+    {
+      "id": "G5B11",
+      "subelement": "G5",
+      "group": "G5B",
+      "question": "What is the ratio of PEP to average power for an unmodulated carrier?",
+      "answers": {
+        "A": "0.707",
+        "B": "1.00",
+        "C": "1.414",
+        "D": "2.00"
+      },
+      "correct": "B",
+      "reference": null,
+      "annotation": {
+        "type": "concept",
+        "content": "An unmodulated carrier is a pure continuous sine wave at constant amplitude. PEP is defined as the average power during the peak RF cycle. For a constant-amplitude sine wave, every cycle IS the peak cycle — so PEP = average power, ratio = 1.00. Contrast with SSB: PEP is measured at the modulation peak, while average power varies with voice — PEP:average ratio can be 2:1 or higher. Distractor C (1.414) is √2, which is the Vpeak/Vrms ratio for voltage, not a power ratio.",
+        "errata": null
+      }
+    },
+    {
+      "id": "G5B12",
+      "subelement": "G5",
+      "group": "G5B",
+      "question": "What is the RMS voltage across a 50-ohm dummy load dissipating 1200 watts?",
+      "answers": {
+        "A": "173 volts",
+        "B": "245 volts",
+        "C": "346 volts",
+        "D": "692 volts"
+      },
+      "correct": "B",
+      "reference": null,
+      "annotation": {
+        "type": "calculation",
+        "content": "P = V² / R → V² = P × R = 1200 × 50 = 60000 → V = √60000 = 244.9V ≈ 245V. Distractor A (173V) comes from √(P×R/4) — incorrectly dividing by 4. Distractor C (346V) = √(1200×100) — using 100 ohms instead of 50. Distractor D (692V) = 245 × √8 — a chain error from peak-to-peak confusion.",
+        "errata": null
+      }
+    },
+    {
+      "id": "G6B01",
+      "subelement": "G6",
+      "group": "G6B",
+      "question": "What determines the performance of a ferrite core at different frequencies?",
+      "answers": {
+        "A": "Its conductivity",
+        "B": "Its thickness",
+        "C": "The composition, or \"mix,\" of materials used",
+        "D": "The ratio of outer diameter to inner diameter"
+      },
+      "correct": "C",
+      "reference": null,
+      "annotation": null
+    },
+    {
+      "id": "G6B04",
+      "subelement": "G6",
+      "group": "G6B",
+      "question": "What is a typical upper frequency limit for low SWR operation of 50-ohm BNC connectors?",
+      "answers": {
+        "A": "50 MHz",
+        "B": "500 MHz",
+        "C": "4 GHz",
+        "D": "40 GHz"
+      },
+      "correct": "C",
+      "reference": null,
+      "annotation": null
+    },
+    {
+      "id": "G6B05",
+      "subelement": "G6",
+      "group": "G6B",
+      "question": "What is an advantage of using a ferrite core toroidal inductor?",
+      "answers": {
+        "A": "Large values of inductance may be obtained",
+        "B": "The magnetic properties of the core may be optimized for a specific range of frequencies",
+        "C": "Most of the magnetic field is contained in the core",
+        "D": "All these choices are correct"
+      },
+      "correct": "D",
+      "reference": null,
+      "annotation": null
+    },
+    {
+      "id": "G6B07",
+      "subelement": "G6",
+      "group": "G6B",
+      "question": "Which of the following describes a type N connector?",
+      "answers": {
+        "A": "A moisture-resistant RF connector useful to 10 GHz",
+        "B": "A small bayonet connector used for data circuits",
+        "C": "A low noise figure VHF connector",
+        "D": "A nickel plated version of the PL-259"
+      },
+      "correct": "A",
+      "reference": null,
+      "annotation": null
+    },
+    {
+      "id": "G6B08",
+      "subelement": "G6",
+      "group": "G6B",
+      "question": "How is an LED biased when emitting light?",
+      "answers": {
+        "A": "In the tunnel-effect region",
+        "B": "At the Zener voltage",
+        "C": "Reverse biased",
+        "D": "Forward biased"
+      },
+      "correct": "D",
+      "reference": null,
+      "annotation": null
+    },
+    {
+      "id": "G6B10",
+      "subelement": "G6",
+      "group": "G6B",
+      "question": "How does a ferrite bead or core reduce common-mode RF current on the shield of a coaxial cable?",
+      "answers": {
+        "A": "By creating an impedance in the current's path",
+        "B": "It converts common-mode current to differential mode current",
+        "C": "It changes the velocity factor of the cable",
+        "D": "It prevents ordinary AM signals from passing through the connector"
+      },
+      "correct": "A",
+      "reference": null,
+      "annotation": {
+        "type": "concept",
+        "content": "G6B09 was deleted from the pool per February 2023 errata; G6B10 follows G6B08 with no renumbering. The ferrite bead adds inductive impedance (choking reactance) to common-mode current — current flowing on the outside of the shield. Differential-mode current (the signal inside the coax) is unaffected because its field is contained within the coax. This is the same principle as a common-mode choke used in antenna feed lines and power supplies.",
+        "errata": null
+      }
+    },
+    {
+      "id": "G7A07",
+      "subelement": "G7",
+      "group": "G7A",
+      "question": "What is the output waveform of an unfiltered full-wave rectifier connected to a resistive load?",
+      "answers": {
+        "A": "A series of DC pulses at twice the frequency of the AC input",
+        "B": "A series of DC pulses at the same frequency as the AC input",
+        "C": "A sine wave at half the frequency of the AC input",
+        "D": "A steady DC voltage"
+      },
+      "correct": "A",
+      "reference": null,
+      "annotation": {
+        "type": "waveform",
+        "content": "Full-wave rectifier flips both the positive and negative half-cycles of the AC input to the same polarity. Result: 60 Hz AC input produces 120 Hz pulsating DC output (both half-cycles now positive). Each pulse is a half-sine bump. Without a filter capacitor, the output drops to zero between pulses. Contrast with half-wave rectifier: only passes one half-cycle, output frequency equals input frequency. Peak voltage ≈ Vpeak of AC input minus diode drop (~0.7V per diode). Add filter cap to smooth humps into near-DC with small ripple.",
+        "errata": null
+      }
+    },
+    {
+      "id": "G7A08",
+      "subelement": "G7",
+      "group": "G7A",
+      "question": "Which of the following is characteristic of a switchmode power supply as compared to a linear power supply?",
+      "answers": {
+        "A": "Faster switching time makes higher output voltage possible",
+        "B": "Fewer circuit components are required",
+        "C": "High-frequency operation allows the use of smaller components",
+        "D": "Inherently more stable"
+      },
+      "correct": "C",
+      "reference": null,
+      "annotation": null
+    },
+    {
+      "id": "G7A09",
+      "subelement": "G7",
+      "group": "G7A",
+      "question": "Which symbol in figure G7-1 represents a field effect transistor?",
+      "figure": {
+        "file": "G7-1.png",
+        "alt": "Figure G7-1: Two-stage RF amplifier schematic with eleven numbered component symbols including transistors, diodes, resistors, capacitors, inductors, and a transformer"
+      },
+      "answers": {
+        "A": "Symbol 2",
+        "B": "Symbol 5",
+        "C": "Symbol 1",
+        "D": "Symbol 4"
+      },
+      "correct": "C",
+      "reference": null,
+      "annotation": {
+        "type": "schematic",
+        "content": "Figure G7-1 is a two-stage RF amplifier schematic. Symbol 1 is an N-channel JFET, the first active device in the circuit (left-center). It is in a common-source configuration: input signal enters through coupling capacitor (Symbol 10) to the gate; drain connects up to resistor (Symbol 11) and the +DC rail. Symbol identification: vertical channel line with gate arrow pointing INTO the channel — inward arrow = N-channel. Gate does not contact the channel directly (junction FET). Key distinguisher: gate arrow direction — inward for N-channel JFET, outward for P-channel. Symbol 2 (NPN BJT) is the other active device but is a bipolar transistor, not a FET. Symbol 4 is a varactor diode. Symbol 5 is a Zener diode.",
+        "errata": null
+      }
+    },
+    {
+      "id": "G7A10",
+      "subelement": "G7",
+      "group": "G7A",
+      "question": "Which symbol in figure G7-1 represents a Zener diode?",
+      "figure": {
+        "file": "G7-1.png",
+        "alt": "Figure G7-1: Two-stage RF amplifier schematic with eleven numbered component symbols including transistors, diodes, resistors, capacitors, inductors, and a transformer"
+      },
+      "answers": {
+        "A": "Symbol 4",
+        "B": "Symbol 1",
+        "C": "Symbol 11",
+        "D": "Symbol 5"
+      },
+      "correct": "D",
+      "reference": null,
+      "annotation": {
+        "type": "schematic",
+        "content": "Symbol 5 is a Zener diode, located in the +DC collector supply line of the NPN output stage where it regulates voltage for amplifier linearity. Symbol identification: standard diode triangle-and-bar, but the cathode bar has small bent/kinked ends (Z-shape). The bent ends are the sole visual distinguisher from a regular rectifier diode (Symbol 3, plain bar) and a varactor (Symbol 4, double-bar cathode). Critical distractor: Symbol 4 (varactor/varicap diode) has a double-bar cathode — two parallel lines — which is visually similar but functionally completely different. Zeners are used for voltage regulation (reverse breakdown); varactors are used as voltage-controlled capacitors in tuning circuits.",
+        "errata": null
+      }
+    },
+    {
+      "id": "G7A11",
+      "subelement": "G7",
+      "group": "G7A",
+      "question": "Which symbol in figure G7-1 represents an NPN junction transistor?",
+      "figure": {
+        "file": "G7-1.png",
+        "alt": "Figure G7-1: Two-stage RF amplifier schematic with eleven numbered component symbols including transistors, diodes, resistors, capacitors, inductors, and a transformer"
+      },
+      "answers": {
+        "A": "Symbol 1",
+        "B": "Symbol 2",
+        "C": "Symbol 7",
+        "D": "Symbol 11"
+      },
+      "correct": "B",
+      "reference": null,
+      "annotation": {
+        "type": "schematic",
+        "content": "Symbol 2 is an NPN BJT (bipolar junction transistor), the second active device in the circuit (right side). It is in a common-emitter configuration: base receives signal from the JFET drain via coupling capacitor; collector connects to +DC through Zener (Symbol 5); emitter connects to ground through resistor+cap network (Symbol 9). Symbol identification: three terminals — base (horizontal line, left), collector (upper diagonal line), emitter (lower diagonal with arrowhead). Arrow on emitter points AWAY from the base line = NPN. Memory aid: NPN = 'Not Pointing iN'. A PNP transistor would have the emitter arrow pointing inward toward the base. Symbol 1 (JFET) is the other active device but is a field-effect transistor, not a bipolar junction transistor.",
+        "errata": null
+      }
+    },
+    {
+      "id": "G7A12",
+      "subelement": "G7",
+      "group": "G7A",
+      "question": "Which symbol in Figure G7-1 represents a solid core transformer?",
+      "figure": {
+        "file": "G7-1.png",
+        "alt": "Figure G7-1: Two-stage RF amplifier schematic with eleven numbered component symbols including transistors, diodes, resistors, capacitors, inductors, and a transformer"
+      },
+      "answers": {
+        "A": "Symbol 4",
+        "B": "Symbol 7",
+        "C": "Symbol 6",
+        "D": "Symbol 1"
+      },
+      "correct": "C",
+      "reference": null,
+      "annotation": {
+        "type": "schematic",
+        "content": "Symbol 6 is a solid (iron) core transformer, located at the far right of the circuit connecting the NPN collector to the output terminal. It provides impedance matching and DC isolation at the output. Symbol identification: two inductor coils side by side with TWO solid parallel vertical lines between them. The solid lines represent a ferromagnetic (iron) core. Core type distinguishers: iron core = solid parallel lines; air core = no lines between coils; ferrite core = dashed lines between coils. Critical distinguisher from Symbol 7 (tapped inductor): a transformer has TWO SEPARATE windings (primary and secondary); a tapped inductor is ONE winding with a tap point. If you see two coil symbols separated by lines, it is a transformer. If you see one coil with a wire emerging from the middle, it is a tapped inductor.",
+        "errata": null
+      }
+    },
+    {
+      "id": "G7A13",
+      "subelement": "G7",
+      "group": "G7A",
+      "question": "Which symbol in Figure G7-1 represents a tapped inductor?",
+      "figure": {
+        "file": "G7-1.png",
+        "alt": "Figure G7-1: Two-stage RF amplifier schematic with eleven numbered component symbols including transistors, diodes, resistors, capacitors, inductors, and a transformer"
+      },
+      "answers": {
+        "A": "Symbol 7",
+        "B": "Symbol 11",
+        "C": "Symbol 6",
+        "D": "Symbol 1"
+      },
+      "correct": "A",
+      "reference": null,
+      "annotation": {
+        "type": "schematic",
+        "content": "Symbol 7 is a tapped inductor, located at the bottom-left of the circuit as part of the JFET input matching and bias network. The tap creates two sections of the winding for impedance transformation — a common technique in RF preamp design to match antenna impedance to the JFET gate without a separate transformer. Symbol identification: a single inductor coil (series of bumps or arcs) with a wire tap emerging from a midpoint of the coil body, creating three terminals total (two ends plus the tap). Critical distinguisher from Symbol 6 (transformer): a tapped inductor is ONE continuous winding with a junction mid-coil; a transformer is TWO separate windings. The tap point is visible as a wire junction emerging from the middle of the coil, not a gap between two coils. Symbol 11 (variable resistor) is a common distractor — it also has three terminals but is a resistor with an adjustable wiper, not an inductor.",
+        "errata": null
+      }
+    }
+  ]
+}
