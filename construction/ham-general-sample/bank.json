@@ -1,0 +1,90 @@
+{
+  "meta": {
+    "title": "Ham Radio General Class — Figure Test",
+    "subtitle": "Three-question slice for ZIP + figure rendering tests",
+    "pool_id": "fcc-element3-figure-test-v1",
+    "version": "1.0",
+    "effective_from": "2023-07-01",
+    "effective_to": "2027-06-30",
+    "total_questions": 3,
+    "passing_score": null,
+    "exam_question_count": null,
+    "source_url": "https://www.arrl.org/general-class-question-pool",
+    "description": "Minimal bank for Q-Primer ZIP and figure-display testing. Contains three G7A questions: a plain question, a figure-referencing question (Figure G7-1), and a plain question — designed to test the transition into and out of figure display.",
+    "tags": ["amateur radio", "FCC", "test", "figures"]
+  },
+
+  "structure": {
+    "levels": ["subelement", "group"],
+    "subelements": [
+      {
+        "id": "G7",
+        "title": "Practical Circuits",
+        "exam_questions": 3,
+        "groups": [
+          { "id": "G7A", "title": "Power supplies; schematic symbols" }
+        ]
+      }
+    ]
+  },
+
+  "questions": [
+    {
+      "id": "G7A07",
+      "subelement": "G7",
+      "group": "G7A",
+      "question": "What is the output waveform of an unfiltered full-wave rectifier connected to a resistive load?",
+      "answers": {
+        "A": "A series of DC pulses at twice the frequency of the AC input",
+        "B": "A series of DC pulses at the same frequency as the AC input",
+        "C": "A sine wave at half the frequency of the AC input",
+        "D": "A steady DC voltage"
+      },
+      "correct": "A",
+      "reference": null,
+      "annotation": {
+        "type": "waveform",
+        "content": "Full-wave rectifier flips both the positive and negative half-cycles of the AC input to the same polarity. Result: 60 Hz AC input produces 120 Hz pulsating DC output (both half-cycles now positive). Each pulse is a half-sine bump. Without a filter capacitor, the output drops to zero between pulses. Contrast with half-wave rectifier: only passes one half-cycle, output frequency equals input frequency.",
+        "errata": null
+      }
+    },
+    {
+      "id": "G7A09",
+      "subelement": "G7",
+      "group": "G7A",
+      "question": "Which symbol in figure G7-1 represents a field effect transistor?",
+      "figure": {
+        "file": "G7-1.png",
+        "alt": "Figure G7-1: Two-stage RF amplifier schematic with numbered component symbols including transistors, diodes, resistors, capacitors, inductors, and a transformer"
+      },
+      "answers": {
+        "A": "Symbol 2",
+        "B": "Symbol 5",
+        "C": "Symbol 1",
+        "D": "Symbol 4"
+      },
+      "correct": "C",
+      "reference": null,
+      "annotation": {
+        "type": "schematic",
+        "content": "Figure G7-1 is a two-stage RF amplifier schematic. Symbol 1 is an N-channel JFET. Gate arrow points INTO the channel — inward arrow = N-channel. Symbol 2 (NPN BJT) is a bipolar transistor, not a FET. Symbol 4 is a varactor diode. Symbol 5 is a Zener diode.",
+        "errata": null
+      }
+    },
+    {
+      "id": "G7A08",
+      "subelement": "G7",
+      "group": "G7A",
+      "question": "Which of the following is characteristic of a switchmode power supply as compared to a linear power supply?",
+      "answers": {
+        "A": "Faster switching time makes higher output voltage possible",
+        "B": "Fewer circuit components are required",
+        "C": "High-frequency operation allows the use of smaller components",
+        "D": "Inherently more stable"
+      },
+      "correct": "C",
+      "reference": null,
+      "annotation": null
+    }
+  ]
+}
