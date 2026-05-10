@@ -450,7 +450,8 @@ test('`inline code` renders as code', () => {
 });
 
 test('HTML in plain text is escaped', () => {
-  const out = MarkdownRenderer.render('<script>alert(1)</script>');
+  // Note: closing tag split across strings to avoid terminating the <script> block
+  const out = MarkdownRenderer.render('<script>alert(1)<' + '/script>');
   assert.notIncludes(out, '<script>');
   assert.includes(out, '&lt;script&gt;');
 });
