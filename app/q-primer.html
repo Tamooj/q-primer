@@ -879,6 +879,217 @@
 
 
     /* ============================================================
+       MODULE: SessionState
+       Owns the session object lifecycle: create, restore, persist.
+       All mutations go through this module; no one else writes
+       to localStorage directly for session data.
+       ============================================================ */
+    const SessionState = (() => {
+
+      let _state = null; // full state tree (session + student + coach_context)
+
+      /** RFC 4122 UUID v4 */
+      function uuid() {
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+          const r = crypto.getRandomValues(new Uint8Array(1))[0] % 16;
+          return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+        });
+      }
+
+      function persist() {
+        if (_state) {
+          _state.session.last_active = new Date().toISOString();
+          Storage.setSession(_state);
+        }
+      }
+
+      /**
+       * Initialise session for a bank.
+       * Restores existing session if bank_id matches; otherwise starts fresh.
+       * @returns {{ restored: boolean }}
+       */
+      function init(bankPoolId) {
+        const saved = Storage.getSession();
+        if (saved && saved.session && saved.session.bank_id === bankPoolId) {
+          _state = saved;
+          persist(); // bump last_active
+          return { restored: true };
+        }
+
+        _state = {
+          session: {
+            id:            uuid(),
+            bank_id:       bankPoolId,
+            started_at:    new Date().toISOString(),
+            last_active:   new Date().toISOString(),
+            filter:        { subelement: null, group: null, mode: 'random' },
+            progress:      { answered: [], correct: [], wrong: [], skipped: [] },
+            token_usage:   { session_input: 0, session_output: 0, session_total: 0 },
+            questionOrder: null,
+          },
+          student:       Storage.getStudent() || { profile: '', created_at: new Date().toISOString() },
+          coach_context: { session_summary: null },
+        };
+        persist();
+        return { restored: false };
+      }
+
+      function getState()  { return _state; }
+      function getSession(){ return _state ? _state.session : null; }
+
+      function setQuestionOrder(order) {
+        if (!_state) return;
+        _state.session.questionOrder = order;
+        persist();
+      }
+
+      /**
+       * Record a submitted answer.
+       * A question can only move from unanswered → answered once.
+       */
+      function recordAnswer(id, choice, isCorrect) {
+        if (!_state) return;
+        const p = _state.session.progress;
+        if (p.answered.includes(id)) return; // idempotent
+        p.answered.push(id);
+        if (isCorrect) p.correct.push(id);
+        else           p.wrong.push(id);
+        persist();
+      }
+
+      function recordSkip(id) {
+        if (!_state) return;
+        const p = _state.session.progress;
+        if (p.answered.includes(id)) return;
+        p.answered.push(id);
+        p.skipped.push(id);
+        persist();
+      }
+
+      function updateTokenUsage(inputTokens, outputTokens) {
+        if (!_state) return;
+        const t = _state.session.token_usage;
+        t.session_input  += inputTokens;
+        t.session_output += outputTokens;
+        t.session_total  += inputTokens + outputTokens;
+        persist();
+      }
+
+      return { init, getState, getSession, setQuestionOrder,
+               recordAnswer, recordSkip, updateTokenUsage };
+    })();
+
+
+    /* ============================================================
+       MODULE: QuizEngine
+       Handles question ordering (Fisher-Yates, one shuffle per
+       session), selection, answer recording, and completion state.
+       No DOM access. Calls UI and SessionState only.
+       ============================================================ */
+    const QuizEngine = (() => {
+
+      let _bank = null;
+
+      /** Fisher-Yates in-place shuffle on a copy. */
+      function shuffle(arr) {
+        const a = [...arr];
+        for (let i = a.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [a[i], a[j]] = [a[j], a[i]];
+        }
+        return a;
+      }
+
+      function getStats() {
+        const sess = SessionState.getSession();
+        if (!_bank || !sess) return { correct:0, answered:0, total:0, remaining:0, skipped:0 };
+        const p = sess.progress;
+        const total = _bank.questions.length;
+        return {
+          correct:   p.correct.length,
+          answered:  p.answered.length,
+          total,
+          remaining: total - p.answered.length,
+          skipped:   p.skipped.length,
+        };
+      }
+
+      function isComplete() {
+        const sess = SessionState.getSession();
+        if (!_bank || !sess) return false;
+        return sess.progress.answered.length >= _bank.questions.length;
+      }
+
+      /**
+       * Return the next unanswered question in session order, or null.
+       */
+      function getNextQuestion() {
+        const sess = SessionState.getSession();
+        if (!_bank || !sess || !sess.questionOrder) return null;
+        const answered = new Set(sess.progress.answered);
+        for (const id of sess.questionOrder) {
+          if (!answered.has(id)) {
+            return _bank.questions.find(q => q.id === id) || null;
+          }
+        }
+        return null;
+      }
+
+      /**
+       * Initialise or restore a session, then render the first question.
+       * Called by UI.transitionToStudy().
+       */
+      function startSession(bank) {
+        _bank = bank;
+        SessionState.init(bank.meta.pool_id);
+
+        // Shuffle once; restore order on session resume
+        const sess = SessionState.getSession();
+        if (!sess.questionOrder) {
+          SessionState.setQuestionOrder(shuffle(bank.questions.map(q => q.id)));
+        }
+
+        UI.updateSessionBar(getStats());
+
+        if (isComplete()) {
+          UI.renderCompletion(getStats());
+        } else {
+          UI.renderQuestion(getNextQuestion());
+        }
+      }
+
+      /**
+       * Record a submitted answer and return whether it was correct.
+       */
+      function submitAnswer(question, choice) {
+        const isCorrect = choice === question.correct;
+        SessionState.recordAnswer(question.id, choice, isCorrect);
+        UI.updateSessionBar(getStats());
+        return isCorrect;
+      }
+
+      function skipQuestion(question) {
+        SessionState.recordSkip(question.id);
+        UI.updateSessionBar(getStats());
+      }
+
+      /**
+       * Advance to the next question, or show completion screen.
+       */
+      function advance() {
+        if (isComplete()) {
+          UI.renderCompletion(getStats());
+        } else {
+          UI.renderQuestion(getNextQuestion());
+        }
+      }
+
+      return { startSession, submitAnswer, skipQuestion, advance,
+               getNextQuestion, isComplete, getStats };
+    })();
+
+
+    /* ============================================================
        MODULE: UI
        All DOM reads and writes live here.
        Other modules have zero DOM access.
@@ -1101,6 +1312,198 @@
             : '';
       }
 
+      // ── Question panel rendering (Chunk B) ───────────────────────
+
+      /**
+       * Render a question into the question panel.
+       * All question/answer text set via textContent — never innerHTML.
+       */
+      function renderQuestion(question) {
+        el.questionPanel.innerHTML = '';
+        resetCoachPanel();
+
+        // Meta line: question ID + reference
+        if (question.id || question.reference) {
+          const meta = document.createElement('div');
+          meta.className = 'q-meta';
+          const idEl = document.createElement('span');
+          idEl.textContent = question.id;
+          meta.appendChild(idEl);
+          if (question.reference) {
+            const refEl = document.createElement('span');
+            refEl.textContent = `[${question.reference}]`;
+            meta.appendChild(refEl);
+          }
+          el.questionPanel.appendChild(meta);
+        }
+
+        // Question text
+        const qText = document.createElement('div');
+        qText.className = 'q-text';
+        qText.textContent = question.question;
+        el.questionPanel.appendChild(qText);
+
+        // Answer choice buttons
+        const choices = document.createElement('div');
+        choices.className = 'answer-choices';
+        const buttons = {};
+        let selectedChoice = null;
+
+        for (const key of ['A', 'B', 'C', 'D']) {
+          const btn = document.createElement('button');
+          btn.className = 'answer-btn';
+          btn.dataset.key = key;
+
+          const keyEl = document.createElement('span');
+          keyEl.className = 'answer-key';
+          keyEl.textContent = key;
+
+          const textEl = document.createElement('span');
+          textEl.textContent = question.answers[key];
+
+          btn.appendChild(keyEl);
+          btn.appendChild(textEl);
+
+          btn.addEventListener('click', () => {
+            if (selectedChoice) buttons[selectedChoice].classList.remove('is-selected');
+            selectedChoice = key;
+            btn.classList.add('is-selected');
+            submitBtn.disabled = false;
+          });
+
+          choices.appendChild(btn);
+          buttons[key] = btn;
+        }
+        el.questionPanel.appendChild(choices);
+
+        // Action row
+        const actions = document.createElement('div');
+        actions.className = 'q-actions';
+
+        const submitBtn = document.createElement('button');
+        submitBtn.className = 'btn btn-submit';
+        submitBtn.textContent = 'Submit';
+        submitBtn.disabled = true;
+
+        const skipBtn = document.createElement('button');
+        skipBtn.className = 'btn btn-ghost';
+        skipBtn.textContent = 'Skip';
+
+        submitBtn.addEventListener('click', () => {
+          if (!selectedChoice) return;
+
+          // Lock inputs
+          submitBtn.disabled = true;
+          skipBtn.disabled   = true;
+          for (const btn of Object.values(buttons)) btn.disabled = true;
+
+          const isCorrect = QuizEngine.submitAnswer(question, selectedChoice);
+
+          // Reveal result with a brief delay for the CSS transition to feel intentional
+          setTimeout(() => {
+            for (const key of ['A', 'B', 'C', 'D']) {
+              const btn = buttons[key];
+              if (key === question.correct) {
+                btn.classList.remove('is-selected');
+                btn.classList.add('is-correct');
+              } else if (key === selectedChoice && !isCorrect) {
+                btn.classList.remove('is-selected');
+                btn.classList.add('is-incorrect');
+              } else if (key !== question.correct) {
+                btn.classList.add('is-dimmed');
+              }
+            }
+            showNextButton(actions);
+          }, 200);
+
+          // Trigger AI coach (wired in Chunk C)
+          if (typeof CoachAPI !== 'undefined') {
+            CoachAPI.explain(question, selectedChoice);
+          }
+        });
+
+        skipBtn.addEventListener('click', () => {
+          submitBtn.disabled = true;
+          skipBtn.disabled   = true;
+          for (const btn of Object.values(buttons)) btn.disabled = true;
+          QuizEngine.skipQuestion(question);
+          showNextButton(actions);
+        });
+
+        actions.appendChild(submitBtn);
+        actions.appendChild(skipBtn);
+        el.questionPanel.appendChild(actions);
+      }
+
+      /** Append the "Next Question →" button to the actions row. */
+      function showNextButton(actionsEl) {
+        const nextBtn = document.createElement('button');
+        nextBtn.className   = 'btn btn-accent-outline';
+        nextBtn.textContent = 'Next Question →';
+        nextBtn.addEventListener('click', () => QuizEngine.advance());
+        actionsEl.appendChild(nextBtn);
+      }
+
+      /** Render the session-complete summary in the question panel. */
+      function renderCompletion(stats) {
+        el.questionPanel.innerHTML = '';
+        resetCoachPanel();
+
+        const screen = document.createElement('div');
+        screen.id = 'completion-screen';
+
+        const heading = document.createElement('h2');
+        heading.textContent = 'SESSION COMPLETE';
+
+        const pct = stats.answered > 0
+          ? Math.round((stats.correct / stats.answered) * 100) : 0;
+
+        const bigScore = document.createElement('div');
+        bigScore.className = 'completion-big-score';
+        // Safe: correct and answered are integers from our own state
+        bigScore.textContent = `${stats.correct}`;
+        const denom = document.createElement('span');
+        denom.textContent = `/${stats.answered}`;
+        bigScore.appendChild(denom);
+
+        const statsEl = document.createElement('div');
+        statsEl.className = 'completion-stats';
+
+        const lines = [
+          `${pct}% correct`,
+          `${stats.skipped} skipped`,
+          `${stats.total} questions in bank`,
+        ];
+        lines.forEach((line, i) => {
+          if (i > 0) statsEl.appendChild(document.createElement('br'));
+          statsEl.appendChild(document.createTextNode(line));
+        });
+
+        const backBtn = document.createElement('button');
+        backBtn.className   = 'btn btn-primary';
+        backBtn.style.maxWidth = '220px';
+        backBtn.textContent = 'Back to Setup';
+        backBtn.addEventListener('click', () => transitionToSetup());
+
+        screen.appendChild(heading);
+        screen.appendChild(bigScore);
+        screen.appendChild(statsEl);
+        screen.appendChild(backBtn);
+        el.questionPanel.appendChild(screen);
+      }
+
+      /** Reset coach panel to its idle placeholder state. */
+      function resetCoachPanel() {
+        el.coachContent.innerHTML = '';
+        const p = document.createElement('div');
+        p.className   = 'coach-placeholder';
+        p.textContent = 'Answer a question to see a coaching explanation here.';
+        el.coachContent.appendChild(p);
+        el.followupInput.value      = '';
+        el.followupInput.disabled   = true;
+        el.followupSendBtn.disabled = true;
+      }
+
       // ── Init ─────────────────────────────────────────────────────
 
       function init() {
@@ -1130,13 +1533,12 @@
         transitionToSetup,
         refreshStartButton,
         updateSessionBar,
+        renderQuestion,
+        renderCompletion,
         showCoachLoading,
         showCoachResponse,
         showCoachError,
         updateTokenUsage,
-        // Direct panel access for Chunk B
-        get questionPanel() { return el.questionPanel; },
-        get coachContent()  { return el.coachContent;  },
       };
     })();
 

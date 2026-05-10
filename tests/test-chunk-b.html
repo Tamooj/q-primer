@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Q-Primer — Chunk B Tests</title>
+  <style>
+    :root {
+      --pass: #22c55e; --fail: #ef4444;
+      --bg: #0f1117; --surface: #1a1d27; --border: #2e3347;
+      --text: #e8eaf0; --text-dim: #8b90a7; --accent: #4a9eff;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: 'IBM Plex Mono', monospace; font-size: 13px; line-height: 1.6; padding: 2rem; }
+    h1   { font-size: 1rem; color: var(--accent); letter-spacing: 0.05em; margin-bottom: 0.25rem; }
+    .subtitle { color: var(--text-dim); font-size: 0.78rem; margin-bottom: 1.5rem; }
+    #summary { display: flex; gap: 2rem; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 0.75rem 1.25rem; margin-bottom: 1.5rem; font-size: 0.85rem; }
+    .summary-pass { color: var(--pass); font-weight: 600; }
+    .summary-fail { color: var(--fail); font-weight: 600; }
+    .summary-total { color: var(--text-dim); }
+    .suite { margin-bottom: 1.5rem; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+    .suite-header { padding: 0.5rem 1rem; background: rgba(255,255,255,0.03); border-bottom: 1px solid var(--border); font-size: 0.72rem; font-weight: 600; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.08em; }
+    .test-row { display: flex; align-items: flex-start; gap: 0.75rem; padding: 0.45rem 1rem; border-bottom: 1px solid var(--border); font-size: 0.8rem; }
+    .test-row:last-child { border-bottom: none; }
+    .test-status { flex-shrink: 0; font-weight: 600; width: 3rem; }
+    .test-status.pass { color: var(--pass); }
+    .test-status.fail { color: var(--fail); }
+    .test-desc { flex: 1; }
+    .test-detail { margin-top: 0.2rem; font-size: 0.72rem; color: var(--fail); font-style: italic; }
+  </style>
+</head>
+<body>
+
+<h1>Q-PRIMER — CHUNK B TEST SUITE</h1>
+<div class="subtitle">SessionState · QuizEngine (shuffle, selection, completion, stats)</div>
+
+<div id="summary">
+  <span class="summary-pass" id="pass-count">…</span>
+  <span class="summary-fail" id="fail-count">…</span>
+  <span class="summary-total" id="total-count"></span>
+</div>
+
+<div id="results"></div>
+
+<script>
+'use strict';
+
+/* ----------------------------------------------------------------
+   Minimal Storage stub — uses an in-memory object so tests don't
+   touch the real localStorage / sessionStorage.
+   ---------------------------------------------------------------- */
+const _store = {};
+const Storage = {
+  getApiKey()    { return _store.apikey  || ''; },
+  setApiKey(k)   { _store.apikey = k; },
+  clearApiKey()  { delete _store.apikey; },
+  getStudent()   { return _store.student ? JSON.parse(_store.student) : null; },
+  setStudent(o)  { _store.student = JSON.stringify(o); },
+  getSession()   { return _store.session ? JSON.parse(_store.session) : null; },
+  setSession(o)  { _store.session = JSON.stringify(o); },
+  clearSession() { delete _store.session; },
+};
+
+/* ----------------------------------------------------------------
+   SessionState — exact copy from app/q-primer.html
+   ---------------------------------------------------------------- */
+const SessionState = (() => {
+  let _state = null;
+
+  function uuid() {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+      const r = crypto.getRandomValues(new Uint8Array(1))[0] % 16;
+      return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+    });
+  }
+
+  function persist() {
+    if (_state) {
+      _state.session.last_active = new Date().toISOString();
+      Storage.setSession(_state);
+    }
+  }
+
+  function init(bankPoolId) {
+    const saved = Storage.getSession();
+    if (saved && saved.session && saved.session.bank_id === bankPoolId) {
+      _state = saved;
+      persist();
+      return { restored: true };
+    }
+    _state = {
+      session: {
+        id:            uuid(),
+        bank_id:       bankPoolId,
+        started_at:    new Date().toISOString(),
+        last_active:   new Date().toISOString(),
+        filter:        { subelement: null, group: null, mode: 'random' },
+        progress:      { answered: [], correct: [], wrong: [], skipped: [] },
+        token_usage:   { session_input: 0, session_output: 0, session_total: 0 },
+        questionOrder: null,
+      },
+      student:       Storage.getStudent() || { profile: '', created_at: new Date().toISOString() },
+      coach_context: { session_summary: null },
+    };
+    persist();
+    return { restored: false };
+  }
+
+  function getState()   { return _state; }
+  function getSession() { return _state ? _state.session : null; }
+
+  function setQuestionOrder(order) {
+    if (!_state) return;
+    _state.session.questionOrder = order;
+    persist();
+  }
+
+  function recordAnswer(id, choice, isCorrect) {
+    if (!_state) return;
+    const p = _state.session.progress;
+    if (p.answered.includes(id)) return;
+    p.answered.push(id);
+    if (isCorrect) p.correct.push(id);
+    else           p.wrong.push(id);
+    persist();
+  }
+
+  function recordSkip(id) {
+    if (!_state) return;
+    const p = _state.session.progress;
+    if (p.answered.includes(id)) return;
+    p.answered.push(id);
+    p.skipped.push(id);
+    persist();
+  }
+
+  function updateTokenUsage(inputTokens, outputTokens) {
+    if (!_state) return;
+    const t = _state.session.token_usage;
+    t.session_input  += inputTokens;
+    t.session_output += outputTokens;
+    t.session_total  += inputTokens + outputTokens;
+    persist();
+  }
+
+  return { init, getState, getSession, setQuestionOrder,
+           recordAnswer, recordSkip, updateTokenUsage };
+})();
+
+/* ----------------------------------------------------------------
+   QuizEngine — exact copy from app/q-primer.html, with UI calls
+   replaced by captures for test inspection.
+   ---------------------------------------------------------------- */
+const _uiCalls = { rendered: [], completions: [] };
+const UI = {
+  updateSessionBar() {},
+  renderQuestion(q)    { _uiCalls.rendered.push(q); },
+  renderCompletion(s)  { _uiCalls.completions.push(s); },
+};
+
+const QuizEngine = (() => {
+  let _bank = null;
+
+  function shuffle(arr) {
+    const a = [...arr];
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  function getStats() {
+    const sess = SessionState.getSession();
+    if (!_bank || !sess) return { correct:0, answered:0, total:0, remaining:0, skipped:0 };
+    const p = sess.progress;
+    const total = _bank.questions.length;
+    return {
+      correct:   p.correct.length,
+      answered:  p.answered.length,
+      total,
+      remaining: total - p.answered.length,
+      skipped:   p.skipped.length,
+    };
+  }
+
+  function isComplete() {
+    const sess = SessionState.getSession();
+    if (!_bank || !sess) return false;
+    return sess.progress.answered.length >= _bank.questions.length;
+  }
+
+  function getNextQuestion() {
+    const sess = SessionState.getSession();
+    if (!_bank || !sess || !sess.questionOrder) return null;
+    const answered = new Set(sess.progress.answered);
+    for (const id of sess.questionOrder) {
+      if (!answered.has(id)) return _bank.questions.find(q => q.id === id) || null;
+    }
+    return null;
+  }
+
+  function startSession(bank) {
+    _bank = bank;
+    SessionState.init(bank.meta.pool_id);
+    const sess = SessionState.getSession();
+    if (!sess.questionOrder) {
+      SessionState.setQuestionOrder(shuffle(bank.questions.map(q => q.id)));
+    }
+    UI.updateSessionBar(getStats());
+    if (isComplete()) UI.renderCompletion(getStats());
+    else              UI.renderQuestion(getNextQuestion());
+  }
+
+  function submitAnswer(question, choice) {
+    const isCorrect = choice === question.correct;
+    SessionState.recordAnswer(question.id, choice, isCorrect);
+    UI.updateSessionBar(getStats());
+    return isCorrect;
+  }
+
+  function skipQuestion(question) {
+    SessionState.recordSkip(question.id);
+    UI.updateSessionBar(getStats());
+  }
+
+  function advance() {
+    if (isComplete()) UI.renderCompletion(getStats());
+    else              UI.renderQuestion(getNextQuestion());
+  }
+
+  return { startSession, submitAnswer, skipQuestion, advance,
+           getNextQuestion, isComplete, getStats };
+})();
+
+
+/* ----------------------------------------------------------------
+   Test fixtures
+   ---------------------------------------------------------------- */
+function makeBank(n = 4) {
+  const questions = [];
+  for (let i = 1; i <= n; i++) {
+    questions.push({
+      id: `Q${String(i).padStart(3,'0')}`,
+      question: `Question ${i}?`,
+      answers: { A: 'Alpha', B: 'Beta', C: 'Gamma', D: 'Delta' },
+      correct: ['A','B','C','D'][(i-1) % 4],
+    });
+  }
+  return { meta: { title: 'Test', pool_id: 'test-pool', version: '1.0' }, questions };
+}
+
+function resetStore() {
+  delete _store.session;
+  delete _store.student;
+  delete _store.apikey;
+  _uiCalls.rendered.length    = 0;
+  _uiCalls.completions.length = 0;
+}
+
+
+/* ----------------------------------------------------------------
+   Runner
+   ---------------------------------------------------------------- */
+let _passed = 0, _failed = 0;
+const _suites = [];
+let _cur = null;
+
+function suite(name)       { _cur = { name, tests: [] }; _suites.push(_cur); }
+function test(desc, fn) {
+  try { fn(); _passed++; _cur.tests.push({ desc, status: 'pass', detail: null }); }
+  catch(e) { _failed++; _cur.tests.push({ desc, status: 'fail', detail: e.message }); }
+}
+
+const assert = {
+  eq(a, b)          { if (a !== b)  throw new Error(`Expected ${JSON.stringify(b)}, got ${JSON.stringify(a)}`); },
+  true(v)           { if (v !== true)  throw new Error(`Expected true, got ${JSON.stringify(v)}`); },
+  false(v)          { if (v !== false) throw new Error(`Expected false, got ${JSON.stringify(v)}`); },
+  null(v)           { if (v !== null)  throw new Error(`Expected null, got ${JSON.stringify(v)}`); },
+  notNull(v)        { if (v == null)   throw new Error(`Expected non-null`); },
+  includes(arr, v)  { if (!arr.includes(v)) throw new Error(`Expected ${JSON.stringify(arr)} to include ${JSON.stringify(v)}`); },
+  notIncludes(a, v) { if (a.includes(v))    throw new Error(`Did not expect ${JSON.stringify(v)} in array`); },
+  gt(a, b)          { if (!(a > b))   throw new Error(`Expected ${a} > ${b}`); },
+  len(arr, n)       { if (arr.length !== n) throw new Error(`Expected length ${n}, got ${arr.length}`); },
+};
+
+
+/* ================================================================
+   SUITE 1: SessionState — new session
+   ================================================================ */
+suite('SessionState — new session');
+
+test('init creates a session object', () => {
+  resetStore();
+  const r = SessionState.init('test-pool');
+  assert.false(r.restored);
+  assert.notNull(SessionState.getSession());
+});
+
+test('new session has correct bank_id', () => {
+  resetStore();
+  SessionState.init('my-pool');
+  assert.eq(SessionState.getSession().bank_id, 'my-pool');
+});
+
+test('new session has all required progress fields', () => {
+  resetStore();
+  SessionState.init('p');
+  const p = SessionState.getSession().progress;
+  assert.true(Array.isArray(p.answered));
+  assert.true(Array.isArray(p.correct));
+  assert.true(Array.isArray(p.wrong));
+  assert.true(Array.isArray(p.skipped));
+  assert.len(p.answered, 0);
+});
+
+test('new session has zero token usage', () => {
+  resetStore();
+  SessionState.init('p');
+  const t = SessionState.getSession().token_usage;
+  assert.eq(t.session_input,  0);
+  assert.eq(t.session_output, 0);
+  assert.eq(t.session_total,  0);
+});
+
+test('new session has null questionOrder', () => {
+  resetStore();
+  SessionState.init('p');
+  assert.null(SessionState.getSession().questionOrder);
+});
+
+test('new session is persisted to storage immediately', () => {
+  resetStore();
+  SessionState.init('p');
+  assert.notNull(Storage.getSession());
+});
+
+test('session id is a UUID-shaped string', () => {
+  resetStore();
+  SessionState.init('p');
+  const id = SessionState.getSession().id;
+  assert.true(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(id));
+});
+
+
+/* ================================================================
+   SUITE 2: SessionState — restore
+   ================================================================ */
+suite('SessionState — session restore');
+
+test('init restores session when bank_id matches', () => {
+  resetStore();
+  SessionState.init('pool-x');
+  const firstId = SessionState.getSession().id;
+
+  // Simulate a page reload by calling init again
+  const r = SessionState.init('pool-x');
+  assert.true(r.restored);
+  assert.eq(SessionState.getSession().id, firstId); // same session
+});
+
+test('init starts fresh when bank_id differs', () => {
+  resetStore();
+  SessionState.init('pool-a');
+  const firstId = SessionState.getSession().id;
+
+  const r = SessionState.init('pool-b');
+  assert.false(r.restored);
+  const newId = SessionState.getSession().id;
+  assert.true(newId !== firstId);
+});
+
+test('restored session preserves question order', () => {
+  resetStore();
+  SessionState.init('p');
+  SessionState.setQuestionOrder(['Q3','Q1','Q2']);
+
+  SessionState.init('p');
+  assert.true(JSON.stringify(SessionState.getSession().questionOrder) === '["Q3","Q1","Q2"]');
+});
+
+test('restored session preserves progress', () => {
+  resetStore();
+  SessionState.init('p');
+  SessionState.recordAnswer('Q1', 'A', true);
+
+  SessionState.init('p');
+  assert.includes(SessionState.getSession().progress.correct, 'Q1');
+});
+
+
+/* ================================================================
+   SUITE 3: SessionState — mutations
+   ================================================================ */
+suite('SessionState — recordAnswer and recordSkip');
+
+test('correct answer populates answered and correct', () => {
+  resetStore();
+  SessionState.init('p');
+  SessionState.recordAnswer('Q1', 'A', true);
+  const p = SessionState.getSession().progress;
+  assert.includes(p.answered, 'Q1');
+  assert.includes(p.correct,  'Q1');
+  assert.notIncludes(p.wrong, 'Q1');
+});
+
+test('wrong answer populates answered and wrong', () => {
+  resetStore();
+  SessionState.init('p');
+  SessionState.recordAnswer('Q1', 'B', false);
+  const p = SessionState.getSession().progress;
+  assert.includes(p.answered, 'Q1');
+  assert.includes(p.wrong,    'Q1');
+  assert.notIncludes(p.correct, 'Q1');
+});
+
+test('recordAnswer is idempotent — second call is ignored', () => {
+  resetStore();
+  SessionState.init('p');
+  SessionState.recordAnswer('Q1', 'A', true);
+  SessionState.recordAnswer('Q1', 'B', false); // should be ignored
+  const p = SessionState.getSession().progress;
+  assert.len(p.answered, 1);
+  assert.len(p.correct,  1);
+  assert.len(p.wrong,    0);
+});
+
+test('recordSkip populates answered and skipped', () => {
+  resetStore();
+  SessionState.init('p');
+  SessionState.recordSkip('Q2');
+  const p = SessionState.getSession().progress;
+  assert.includes(p.answered, 'Q2');
+  assert.includes(p.skipped,  'Q2');
+  assert.notIncludes(p.correct, 'Q2');
+  assert.notIncludes(p.wrong,   'Q2');
+});
+
+test('recordSkip is idempotent', () => {
+  resetStore();
+  SessionState.init('p');
+  SessionState.recordSkip('Q1');
+  SessionState.recordSkip('Q1');
+  assert.len(SessionState.getSession().progress.skipped, 1);
+});
+
+test('setQuestionOrder stores the array', () => {
+  resetStore();
+  SessionState.init('p');
+  const order = ['Q3','Q1','Q2'];
+  SessionState.setQuestionOrder(order);
+  assert.true(JSON.stringify(SessionState.getSession().questionOrder) === JSON.stringify(order));
+});
+
+
+/* ================================================================
+   SUITE 4: SessionState — token usage
+   ================================================================ */
+suite('SessionState — token usage');
+
+test('updateTokenUsage accumulates correctly', () => {
+  resetStore();
+  SessionState.init('p');
+  SessionState.updateTokenUsage(100, 50);
+  SessionState.updateTokenUsage(200, 75);
+  const t = SessionState.getSession().token_usage;
+  assert.eq(t.session_input,  300);
+  assert.eq(t.session_output, 125);
+  assert.eq(t.session_total,  425);
+});
+
+
+/* ================================================================
+   SUITE 5: QuizEngine — shuffle
+   ================================================================ */
+suite('QuizEngine — Fisher-Yates shuffle');
+
+test('shuffle returns all IDs with no duplicates', () => {
+  resetStore();
+  const bank = makeBank(10);
+  QuizEngine.startSession(bank);
+  const order = SessionState.getSession().questionOrder;
+  const original = bank.questions.map(q => q.id).sort();
+  assert.eq(JSON.stringify([...order].sort()), JSON.stringify(original));
+});
+
+test('shuffle result is stored in session', () => {
+  resetStore();
+  const bank = makeBank(4);
+  QuizEngine.startSession(bank);
+  assert.notNull(SessionState.getSession().questionOrder);
+  assert.len(SessionState.getSession().questionOrder, 4);
+});
+
+test('shuffle is not re-run on session restore', () => {
+  resetStore();
+  const bank = makeBank(4);
+  QuizEngine.startSession(bank);
+  const firstOrder = [...SessionState.getSession().questionOrder];
+
+  // Restore
+  QuizEngine.startSession(bank);
+  const restoredOrder = SessionState.getSession().questionOrder;
+  assert.eq(JSON.stringify(firstOrder), JSON.stringify(restoredOrder));
+});
+
+test('shuffle of 1 question is the same question', () => {
+  resetStore();
+  const bank = makeBank(1);
+  QuizEngine.startSession(bank);
+  const order = SessionState.getSession().questionOrder;
+  assert.len(order, 1);
+  assert.eq(order[0], 'Q001');
+});
+
+
+/* ================================================================
+   SUITE 6: QuizEngine — question selection and completion
+   ================================================================ */
+suite('QuizEngine — question selection');
+
+test('getNextQuestion returns a question object', () => {
+  resetStore();
+  const bank = makeBank(4);
+  QuizEngine.startSession(bank);
+  const q = QuizEngine.getNextQuestion();
+  assert.notNull(q);
+  assert.true(typeof q.question === 'string');
+});
+
+test('getNextQuestion skips already-answered questions', () => {
+  resetStore();
+  const bank = makeBank(4);
+  QuizEngine.startSession(bank);
+
+  const first = QuizEngine.getNextQuestion();
+  QuizEngine.submitAnswer(first, first.correct);
+
+  const second = QuizEngine.getNextQuestion();
+  assert.notNull(second);
+  assert.true(second.id !== first.id);
+});
+
+test('getNextQuestion returns null when all answered', () => {
+  resetStore();
+  const bank = makeBank(3);
+  QuizEngine.startSession(bank);
+  for (const q of bank.questions) {
+    SessionState.recordAnswer(q.id, q.correct, true);
+  }
+  assert.null(QuizEngine.getNextQuestion());
+});
+
+test('isComplete is false with questions remaining', () => {
+  resetStore();
+  const bank = makeBank(4);
+  QuizEngine.startSession(bank);
+  assert.false(QuizEngine.isComplete());
+});
+
+test('isComplete is true when all questions answered', () => {
+  resetStore();
+  const bank = makeBank(3);
+  QuizEngine.startSession(bank);
+  for (const q of bank.questions) SessionState.recordAnswer(q.id, q.correct, true);
+  assert.true(QuizEngine.isComplete());
+});
+
+test('isComplete counts skipped questions as answered', () => {
+  resetStore();
+  const bank = makeBank(2);
+  QuizEngine.startSession(bank);
+  QuizEngine.submitAnswer(bank.questions[0], bank.questions[0].correct);
+  QuizEngine.skipQuestion(bank.questions[1]);
+  assert.true(QuizEngine.isComplete());
+});
+
+
+/* ================================================================
+   SUITE 7: QuizEngine — stats and scoring
+   ================================================================ */
+suite('QuizEngine — stats');
+
+test('getStats initial state', () => {
+  resetStore();
+  const bank = makeBank(5);
+  QuizEngine.startSession(bank);
+  const s = QuizEngine.getStats();
+  assert.eq(s.total,     5);
+  assert.eq(s.answered,  0);
+  assert.eq(s.correct,   0);
+  assert.eq(s.remaining, 5);
+  assert.eq(s.skipped,   0);
+});
+
+test('getStats after one correct answer', () => {
+  resetStore();
+  const bank = makeBank(4);
+  QuizEngine.startSession(bank);
+  const q = QuizEngine.getNextQuestion();
+  QuizEngine.submitAnswer(q, q.correct); // correct
+  const s = QuizEngine.getStats();
+  assert.eq(s.answered,  1);
+  assert.eq(s.correct,   1);
+  assert.eq(s.remaining, 3);
+});
+
+test('getStats after one wrong answer', () => {
+  resetStore();
+  const bank = makeBank(4);
+  QuizEngine.startSession(bank);
+  const q = QuizEngine.getNextQuestion();
+  const wrongChoice = ['A','B','C','D'].find(k => k !== q.correct);
+  QuizEngine.submitAnswer(q, wrongChoice); // wrong
+  const s = QuizEngine.getStats();
+  assert.eq(s.correct, 0);
+  assert.eq(s.answered, 1);
+});
+
+test('getStats after skip', () => {
+  resetStore();
+  const bank = makeBank(4);
+  QuizEngine.startSession(bank);
+  QuizEngine.skipQuestion(QuizEngine.getNextQuestion());
+  const s = QuizEngine.getStats();
+  assert.eq(s.skipped,  1);
+  assert.eq(s.answered, 1);
+  assert.eq(s.correct,  0);
+});
+
+test('submitAnswer returns true for correct choice', () => {
+  resetStore();
+  const bank = makeBank(4);
+  QuizEngine.startSession(bank);
+  const q = QuizEngine.getNextQuestion();
+  assert.true(QuizEngine.submitAnswer(q, q.correct));
+});
+
+test('submitAnswer returns false for wrong choice', () => {
+  resetStore();
+  const bank = makeBank(4);
+  QuizEngine.startSession(bank);
+  const q = QuizEngine.getNextQuestion();
+  const wrong = ['A','B','C','D'].find(k => k !== q.correct);
+  assert.false(QuizEngine.submitAnswer(q, wrong));
+});
+
+test('advance calls renderCompletion when all done', () => {
+  resetStore();
+  _uiCalls.completions.length = 0;
+  const bank = makeBank(2);
+  QuizEngine.startSession(bank);
+  for (const q of bank.questions) QuizEngine.submitAnswer(q, q.correct);
+  QuizEngine.advance();
+  assert.gt(_uiCalls.completions.length, 0);
+});
+
+test('completion stats have sensible values', () => {
+  resetStore();
+  const bank = makeBank(4);
+  QuizEngine.startSession(bank);
+  const [q1, q2, q3, q4] = bank.questions;
+  QuizEngine.submitAnswer(q1, q1.correct);       // correct
+  QuizEngine.submitAnswer(q2, q1.correct);       // wrong (using q1's answer)
+  QuizEngine.skipQuestion(q3);
+  QuizEngine.submitAnswer(q4, q4.correct);       // correct
+  const s = QuizEngine.getStats();
+  assert.eq(s.correct,  2);
+  assert.eq(s.skipped,  1);
+  assert.eq(s.answered, 4);
+  assert.eq(s.total,    4);
+  assert.eq(s.remaining,0);
+});
+
+
+/* ================================================================
+   RENDER
+   ================================================================ */
+document.addEventListener('DOMContentLoaded', () => {
+  const container = document.getElementById('results');
+
+  for (const s of _suites) {
+    const suiteEl = document.createElement('div');
+    suiteEl.className = 'suite';
+    const hdr = document.createElement('div');
+    hdr.className = 'suite-header';
+    hdr.textContent = s.name;
+    suiteEl.appendChild(hdr);
+
+    for (const t of s.tests) {
+      const row = document.createElement('div');
+      row.className = 'test-row';
+      const status = document.createElement('span');
+      status.className = `test-status ${t.status}`;
+      status.textContent = t.status === 'pass' ? 'PASS' : 'FAIL';
+      const desc = document.createElement('div');
+      desc.className = 'test-desc';
+      desc.appendChild(document.createTextNode(t.desc));
+      if (t.detail) {
+        const d = document.createElement('div');
+        d.className = 'test-detail';
+        d.textContent = t.detail;
+        desc.appendChild(d);
+      }
+      row.appendChild(status);
+      row.appendChild(desc);
+      suiteEl.appendChild(row);
+    }
+    container.appendChild(suiteEl);
+  }
+
+  const total = _passed + _failed;
+  document.getElementById('pass-count').textContent  = `${_passed} passed`;
+  document.getElementById('fail-count').textContent  = `${_failed} failed`;
+  document.getElementById('total-count').textContent = `${total} total`;
+  document.title = `${_failed > 0 ? '✗' : '✓'} Chunk B Tests (${_passed}/${total})`;
+});
+</script>
+</body>
+</html>
