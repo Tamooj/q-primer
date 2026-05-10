@@ -73,6 +73,10 @@
       "subelement": "T2",
       "group": "T2A",
       "question": "In the diagram shown, which component is a varactor diode?",
+      "figure": {
+        "file": "T2-1.png",
+        "alt": "Four diode schematic symbols labeled 1–4: plain cathode bar, bent cathode ends, double-bar cathode, and circled bar"
+      },
       "answers": {
         "A": "Component 1 — plain single-bar symbol",
         "B": "Component 2 — bent cathode ends",

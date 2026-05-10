@@ -7,6 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <style>
     /* ============================================================
        DESIGN TOKENS
@@ -345,6 +346,16 @@
     .answer-btn.is-selected .answer-key,
     .answer-btn.is-correct  .answer-key { color: var(--text-primary); }
 
+    /* Question figure */
+    .q-figure     { margin: 0; text-align: center; }
+    .q-figure-img {
+      max-width: 100%;
+      max-height: 300px;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      background: var(--bg);
+    }
+
     /* Question action row */
     .q-actions { display: flex; gap: 0.65rem; align-items: center; }
 
@@ -529,8 +540,8 @@
       <div class="setup-section">
         <label class="field-label">Question Bank</label>
         <div class="bank-drop-zone" id="bank-drop-zone">
-          <input type="file" id="bank-file-input" accept=".json"
-                 aria-label="Load question bank JSON file">
+          <input type="file" id="bank-file-input" accept=".json,.zip"
+                 aria-label="Load question bank JSON or ZIP file">
           <div class="bank-drop-inner" id="bank-drop-inner">
             <span class="bank-drop-icon" aria-hidden="true">📂</span>
             <div class="bank-drop-primary">Click to load a question bank</div>
@@ -779,6 +790,19 @@
             }
           }
 
+          // figure: if present and non-null, must have file and alt (both non-empty strings)
+          if (q.figure !== null && q.figure !== undefined) {
+            if (typeof q.figure !== 'object' || Array.isArray(q.figure)) {
+              return fail(`${at}.figure must be an object or null.`);
+            }
+            if (typeof q.figure.file !== 'string' || q.figure.file.trim() === '') {
+              return fail(`${at}.figure.file must be a non-empty string.`);
+            }
+            if (typeof q.figure.alt !== 'string' || q.figure.alt.trim() === '') {
+              return fail(`${at}.figure.alt must be a non-empty string (used for accessibility and AI context).`);
+            }
+          }
+
           // Structure cross-references (only enforced when structure is present)
           if (hasStructure) {
             if (q.subelement && !validSubelements.has(q.subelement)) {
@@ -798,9 +822,9 @@
       }
 
       /**
-       * Read a File object and return a validated bank.
+       * Read a plain JSON File and return a validated bank.
        * @param  {File} file
-       * @returns {Promise<{ valid: true, bank: object } | { valid: false, error: string }>}
+       * @returns {Promise<{ valid: true, bank: object, imageMap: null } | { valid: false, error: string }>}
        */
       function load(file) {
         return new Promise((resolve) => {
@@ -813,14 +837,68 @@
               resolve(fail(`Invalid JSON: ${err.message}`));
               return;
             }
-            resolve(validate(parsed));
+            const result = validate(parsed);
+            resolve(result.valid ? { ...result, imageMap: null } : result);
           };
           reader.onerror = () => resolve(fail('Could not read file.'));
           reader.readAsText(file);
         });
       }
 
-      return { validate, load };
+      /**
+       * Read a ZIP File, extract bank.json and any referenced figures.
+       * Figures are extracted as blob URLs stored in a Map<filename, url>.
+       * @param  {File} file
+       * @returns {Promise<{ valid: true, bank: object, imageMap: Map } | { valid: false, error: string }>}
+       */
+      async function loadZip(file) {
+        if (typeof JSZip === 'undefined') {
+          return fail('JSZip library not loaded. Check your internet connection and reload.');
+        }
+
+        let zip;
+        try {
+          zip = await JSZip.loadAsync(file);
+        } catch (err) {
+          return fail(`Could not read ZIP: ${err.message}`);
+        }
+
+        // Extract and parse bank.json from zip root
+        const bankEntry = zip.file('bank.json');
+        if (!bankEntry) {
+          return fail('ZIP must contain bank.json at the root level.');
+        }
+        let parsed;
+        try {
+          const text = await bankEntry.async('text');
+          parsed = JSON.parse(text);
+        } catch (err) {
+          return fail(`Invalid JSON in bank.json: ${err.message}`);
+        }
+
+        // Validate schema
+        const result = validate(parsed);
+        if (!result.valid) return result;
+
+        // Extract referenced figure images into blob URLs
+        const imageMap = new Map();
+        const figureRefs = result.bank.questions
+          .filter(q => q.figure && q.figure.file)
+          .map(q => q.figure.file);
+
+        for (const filename of figureRefs) {
+          const entry = zip.file(`figures/${filename}`);
+          if (!entry) {
+            return fail(`Figure file not found in ZIP: figures/${filename}`);
+          }
+          const blob = await entry.async('blob');
+          imageMap.set(filename, URL.createObjectURL(blob));
+        }
+
+        return { valid: true, bank: result.bank, imageMap };
+      }
+
+      return { validate, load, loadZip };
     })();
 
 
@@ -863,8 +941,9 @@
        Top-level in-memory state. Does not touch the DOM.
        ============================================================ */
     const AppState = (() => {
-      let _phase = 'SETUP'; // 'SETUP' | 'STUDY'
-      let _bank  = null;
+      let _phase    = 'SETUP'; // 'SETUP' | 'STUDY'
+      let _bank     = null;
+      let _imageMap = null;   // Map<filename, blobURL> — populated from ZIP banks
 
       return {
         getPhase()   { return _phase; },
@@ -874,6 +953,16 @@
         clearBank()  { _bank = null; },
         hasBank()    { return _bank !== null; },
         hasApiKey()  { return Storage.getApiKey().length > 0; },
+
+        getImageMap()   { return _imageMap; },
+        setImageMap(m)  { _imageMap = m; },
+        /** Revoke all blob URLs and clear the map. */
+        clearImageMap() {
+          if (_imageMap) {
+            for (const url of _imageMap.values()) URL.revokeObjectURL(url);
+          }
+          _imageMap = null;
+        },
       };
     })();
 
@@ -1204,12 +1293,18 @@
         el.bankStatus.className   = '';
         el.bankStatus.textContent = 'Validating…';
 
-        const result = await BankLoader.load(file);
+        const isZip = file.name.toLowerCase().endsWith('.zip');
+        const result = isZip
+          ? await BankLoader.loadZip(file)
+          : await BankLoader.load(file);
+
         if (result.valid) {
           AppState.setBank(result.bank);
+          AppState.setImageMap(result.imageMap || null);
           showBankLoaded(result.bank);
         } else {
           AppState.clearBank();
+          AppState.clearImageMap();
           showBankError(result.error);
         }
         refreshStartButton();
@@ -1255,7 +1350,9 @@
       function transitionToSetup() {
         AppState.setPhase('SETUP');
         AppState.clearBank();
-        Storage.clearSession();
+        AppState.clearImageMap();   // revokes blob URLs
+        // Session progress is preserved in localStorage for resume.
+        // clearSession() is NOT called here — use "Start Fresh" to wipe explicitly.
         Storage.clearApiKey();
 
         el.studyView.hidden  = true;
@@ -1362,6 +1459,22 @@
         qText.className = 'q-text';
         qText.textContent = question.question;
         el.questionPanel.appendChild(qText);
+
+        // Figure (if present — rendered between question text and answers)
+        if (question.figure) {
+          const imageMap = AppState.getImageMap();
+          const src = imageMap && imageMap.get(question.figure.file);
+          if (src) {
+            const figEl = document.createElement('figure');
+            figEl.className = 'q-figure';
+            const img = document.createElement('img');
+            img.src       = src;
+            img.alt       = question.figure.alt;
+            img.className = 'q-figure-img';
+            figEl.appendChild(img);
+            el.questionPanel.appendChild(figEl);
+          }
+        }
 
         // Answer choice buttons
         const choices = document.createElement('div');

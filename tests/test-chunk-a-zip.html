@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Q-Primer — Chunk A ZIP Tests</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <style>
+    :root {
+      --pass: #22c55e; --fail: #ef4444;
+      --bg: #0f1117; --surface: #1a1d27; --border: #2e3347;
+      --text: #e8eaf0; --text-dim: #8b90a7; --accent: #4a9eff;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: 'IBM Plex Mono', monospace; font-size: 13px; line-height: 1.6; padding: 2rem; }
+    h1   { font-size: 1rem; color: var(--accent); letter-spacing: 0.05em; margin-bottom: 0.25rem; }
+    .subtitle { color: var(--text-dim); font-size: 0.78rem; margin-bottom: 1.5rem; }
+    #summary { display: flex; gap: 2rem; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 0.75rem 1.25rem; margin-bottom: 1.5rem; font-size: 0.85rem; }
+    .summary-pass { color: var(--pass); font-weight: 600; }
+    .summary-fail { color: var(--fail); font-weight: 600; }
+    .summary-total { color: var(--text-dim); }
+    .suite { margin-bottom: 1.5rem; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+    .suite-header { padding: 0.5rem 1rem; background: rgba(255,255,255,0.03); border-bottom: 1px solid var(--border); font-size: 0.72rem; font-weight: 600; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.08em; }
+    .test-row { display: flex; align-items: flex-start; gap: 0.75rem; padding: 0.45rem 1rem; border-bottom: 1px solid var(--border); font-size: 0.8rem; }
+    .test-row:last-child { border-bottom: none; }
+    .test-status { flex-shrink: 0; font-weight: 600; width: 3rem; }
+    .test-status.pass { color: var(--pass); }
+    .test-status.fail { color: var(--fail); }
+    .test-desc { flex: 1; }
+    .test-detail { margin-top: 0.2rem; font-size: 0.72rem; color: var(--fail); font-style: italic; }
+    #loading { color: var(--text-dim); font-style: italic; margin-top: 1rem; }
+  </style>
+</head>
+<body>
+
+<h1>Q-PRIMER — CHUNK A ZIP TEST SUITE</h1>
+<div class="subtitle">BankLoader.loadZip · figure validation · ZIP structure checks</div>
+
+<div id="summary">
+  <span class="summary-pass" id="pass-count">…</span>
+  <span class="summary-fail" id="fail-count">…</span>
+  <span class="summary-total" id="total-count"></span>
+</div>
+
+<div id="results"></div>
+<div id="loading">Running async tests…</div>
+
+<script>
+'use strict';
+
+/* ----------------------------------------------------------------
+   BankLoader — exact copy from app/q-primer.html
+   ---------------------------------------------------------------- */
+const BankLoader = (() => {
+
+  const REQUIRED_META     = ['title', 'pool_id', 'version'];
+  const REQUIRED_QUESTION = ['id', 'question', 'answers', 'correct'];
+  const ANSWER_KEYS       = ['A', 'B', 'C', 'D'];
+
+  const fail = (error) => ({ valid: false, error });
+
+  function validate(bank) {
+    if (!bank || typeof bank !== 'object' || Array.isArray(bank)) {
+      return fail('File is not a valid JSON object.');
+    }
+    if (!bank.meta || typeof bank.meta !== 'object' || Array.isArray(bank.meta)) {
+      return fail('Missing required "meta" object.');
+    }
+    for (const field of REQUIRED_META) {
+      if (typeof bank.meta[field] !== 'string' || bank.meta[field].trim() === '') {
+        return fail(`meta.${field} is required and must be a non-empty string.`);
+      }
+    }
+    if (!Array.isArray(bank.questions)) {
+      return fail('Missing required "questions" array.');
+    }
+    if (bank.questions.length === 0) {
+      return fail('Question bank must contain at least one question.');
+    }
+
+    const validSubelements = new Set();
+    const validGroups      = new Set();
+    if (bank.structure !== undefined && bank.structure !== null) {
+      if (!Array.isArray(bank.structure.subelements)) {
+        return fail('structure.subelements must be an array.');
+      }
+      for (let si = 0; si < bank.structure.subelements.length; si++) {
+        const sub = bank.structure.subelements[si];
+        if (!sub.id || typeof sub.id !== 'string') {
+          return fail(`structure.subelements[${si}] must have a non-empty string id.`);
+        }
+        validSubelements.add(sub.id);
+        if (Array.isArray(sub.groups)) {
+          for (let gi = 0; gi < sub.groups.length; gi++) {
+            const g = sub.groups[gi];
+            if (!g.id || typeof g.id !== 'string') {
+              return fail(`structure.subelements[${si}].groups[${gi}] must have a non-empty string id.`);
+            }
+            validGroups.add(g.id);
+          }
+        }
+      }
+    }
+    const hasStructure = validSubelements.size > 0;
+    const seenIds = new Set();
+
+    for (let i = 0; i < bank.questions.length; i++) {
+      const q  = bank.questions[i];
+      const at = `questions[${i}]`;
+
+      if (!q || typeof q !== 'object') return fail(`${at} must be an object.`);
+
+      for (const field of REQUIRED_QUESTION) {
+        if (q[field] === undefined || q[field] === null) {
+          return fail(`${at}.${field} is required.`);
+        }
+      }
+      if (typeof q.id !== 'string' || q.id.trim() === '') {
+        return fail(`${at}.id must be a non-empty string.`);
+      }
+      if (seenIds.has(q.id)) return fail(`Duplicate question ID: "${q.id}".`);
+      seenIds.add(q.id);
+
+      if (typeof q.question !== 'string' || q.question.trim() === '') {
+        return fail(`${at}.question must be a non-empty string.`);
+      }
+      if (typeof q.answers !== 'object' || Array.isArray(q.answers) || q.answers === null) {
+        return fail(`${at}.answers must be an object.`);
+      }
+      const foundKeys = Object.keys(q.answers).sort().join(',');
+      if (foundKeys !== 'A,B,C,D') {
+        return fail(`${at}.answers must have exactly keys A, B, C, D. Found: ${foundKeys || '(none)'}`);
+      }
+      for (const k of ANSWER_KEYS) {
+        if (typeof q.answers[k] !== 'string' || q.answers[k].trim() === '') {
+          return fail(`${at}.answers.${k} must be a non-empty string.`);
+        }
+      }
+      if (!ANSWER_KEYS.includes(q.correct)) {
+        return fail(`${at}.correct must be A, B, C, or D. Got: "${q.correct}"`);
+      }
+
+      if (q.annotation !== null && q.annotation !== undefined) {
+        if (typeof q.annotation !== 'object' || Array.isArray(q.annotation)) {
+          return fail(`${at}.annotation must be an object or null.`);
+        }
+        if (typeof q.annotation.type !== 'string' || q.annotation.type.trim() === '') {
+          return fail(`${at}.annotation.type must be a non-empty string.`);
+        }
+        if (typeof q.annotation.content !== 'string' || q.annotation.content.trim() === '') {
+          return fail(`${at}.annotation.content must be a non-empty string.`);
+        }
+      }
+
+      if (q.figure !== null && q.figure !== undefined) {
+        if (typeof q.figure !== 'object' || Array.isArray(q.figure)) {
+          return fail(`${at}.figure must be an object or null.`);
+        }
+        if (typeof q.figure.file !== 'string' || q.figure.file.trim() === '') {
+          return fail(`${at}.figure.file must be a non-empty string.`);
+        }
+        if (typeof q.figure.alt !== 'string' || q.figure.alt.trim() === '') {
+          return fail(`${at}.figure.alt must be a non-empty string (used for accessibility and AI context).`);
+        }
+      }
+
+      if (hasStructure) {
+        if (q.subelement && !validSubelements.has(q.subelement)) {
+          return fail(`${at}.subelement "${q.subelement}" is not defined in structure.subelements.`);
+        }
+        if (q.group && !validGroups.has(q.group)) {
+          return fail(`${at}.group "${q.group}" is not defined in structure.`);
+        }
+      }
+    }
+    return { valid: true, bank };
+  }
+
+  function load(file) {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        let parsed;
+        try { parsed = JSON.parse(e.target.result); }
+        catch (err) { resolve(fail(`Invalid JSON: ${err.message}`)); return; }
+        const result = validate(parsed);
+        resolve(result.valid ? { ...result, imageMap: null } : result);
+      };
+      reader.onerror = () => resolve(fail('Could not read file.'));
+      reader.readAsText(file);
+    });
+  }
+
+  async function loadZip(file) {
+    if (typeof JSZip === 'undefined') {
+      return fail('JSZip library not loaded. Check your internet connection and reload.');
+    }
+    let zip;
+    try { zip = await JSZip.loadAsync(file); }
+    catch (err) { return fail(`Could not read ZIP: ${err.message}`); }
+
+    const bankEntry = zip.file('bank.json');
+    if (!bankEntry) return fail('ZIP must contain bank.json at the root level.');
+
+    let parsed;
+    try {
+      const text = await bankEntry.async('text');
+      parsed = JSON.parse(text);
+    } catch (err) { return fail(`Invalid JSON in bank.json: ${err.message}`); }
+
+    const result = validate(parsed);
+    if (!result.valid) return result;
+
+    const imageMap = new Map();
+    const figureRefs = result.bank.questions
+      .filter(q => q.figure && q.figure.file)
+      .map(q => q.figure.file);
+
+    for (const filename of figureRefs) {
+      const entry = zip.file(`figures/${filename}`);
+      if (!entry) return fail(`Figure file not found in ZIP: figures/${filename}`);
+      const blob = await entry.async('blob');
+      imageMap.set(filename, URL.createObjectURL(blob));
+    }
+
+    return { valid: true, bank: result.bank, imageMap };
+  }
+
+  return { validate, load, loadZip };
+})();
+
+
+/* ----------------------------------------------------------------
+   Helpers
+   ---------------------------------------------------------------- */
+
+// A minimal 1×1 transparent PNG (for creating test ZIPs with real image data)
+function makeTinyPng() {
+  const b64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVQI12NgAAIABQAABjE+ibYAAAAASUVORK5CYII=';
+  const bin = atob(b64);
+  const arr = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+  return arr;
+}
+
+function makeMinimalBank(overrides = {}) {
+  return {
+    meta: { title: 'Test Bank', pool_id: 'test-v1', version: '1.0', ...overrides.meta },
+    questions: overrides.questions ?? [{
+      id: 'Q001',
+      question: 'Which answer is correct?',
+      answers: { A: 'Alpha', B: 'Beta', C: 'Gamma', D: 'Delta' },
+      correct: 'A',
+      annotation: null,
+    }],
+  };
+}
+
+function makeBankWithFigure() {
+  return {
+    meta: { title: 'Figure Test', pool_id: 'fig-test-v1', version: '1.0' },
+    questions: [{
+      id: 'Q001',
+      question: 'What is shown in the figure?',
+      figure: { file: 'diagram.png', alt: 'A simple circuit diagram' },
+      answers: { A: 'Alpha', B: 'Beta', C: 'Gamma', D: 'Delta' },
+      correct: 'B',
+      annotation: null,
+    }],
+  };
+}
+
+/** Build a File object from a JSZip instance. */
+async function zipToFile(zip, filename = 'bank.zip') {
+  const blob = await zip.generateAsync({ type: 'blob' });
+  return new File([blob], filename, { type: 'application/zip' });
+}
+
+/** Create a valid zip with bank.json and optional figures. */
+async function makeValidZip(bankObj, figures = {}) {
+  const zip = new JSZip();
+  zip.file('bank.json', JSON.stringify(bankObj));
+  for (const [name, data] of Object.entries(figures)) {
+    zip.folder('figures').file(name, data);
+  }
+  return zipToFile(zip);
+}
+
+
+/* ----------------------------------------------------------------
+   Runner (async-capable)
+   ---------------------------------------------------------------- */
+let _passed = 0, _failed = 0;
+const _suites = [];
+let _cur = null;
+
+function suite(name) { _cur = { name, tests: [] }; _suites.push(_cur); }
+
+async function test(desc, fn) {
+  try {
+    await fn();
+    _passed++;
+    _cur.tests.push({ desc, status: 'pass', detail: null });
+  } catch(e) {
+    _failed++;
+    _cur.tests.push({ desc, status: 'fail', detail: e.message });
+  }
+}
+
+const assert = {
+  eq(a, b)         { if (a !== b)   throw new Error(`Expected ${JSON.stringify(b)}, got ${JSON.stringify(a)}`); },
+  true(v)          { if (v !== true)  throw new Error(`Expected true, got ${JSON.stringify(v)}`); },
+  false(v)         { if (v !== false) throw new Error(`Expected false, got ${JSON.stringify(v)}`); },
+  null(v)          { if (v !== null)  throw new Error(`Expected null, got ${JSON.stringify(v)}`); },
+  notNull(v)       { if (v == null)   throw new Error('Expected non-null'); },
+  includes(s, sub) { if (!s.includes(sub)) throw new Error(`Expected "${s}" to include "${sub}"`); },
+};
+
+function render() {
+  document.getElementById('loading').remove();
+  const container = document.getElementById('results');
+  for (const s of _suites) {
+    const suiteEl = document.createElement('div');
+    suiteEl.className = 'suite';
+    const hdr = document.createElement('div');
+    hdr.className = 'suite-header';
+    hdr.textContent = s.name;
+    suiteEl.appendChild(hdr);
+    for (const t of s.tests) {
+      const row = document.createElement('div');
+      row.className = 'test-row';
+      const status = document.createElement('span');
+      status.className = `test-status ${t.status}`;
+      status.textContent = t.status === 'pass' ? 'PASS' : 'FAIL';
+      const desc = document.createElement('div');
+      desc.className = 'test-desc';
+      desc.appendChild(document.createTextNode(t.desc));
+      if (t.detail) {
+        const d = document.createElement('div');
+        d.className = 'test-detail';
+        d.textContent = t.detail;
+        desc.appendChild(d);
+      }
+      row.appendChild(status);
+      row.appendChild(desc);
+      suiteEl.appendChild(row);
+    }
+    container.appendChild(suiteEl);
+  }
+  const total = _passed + _failed;
+  document.getElementById('pass-count').textContent  = `${_passed} passed`;
+  document.getElementById('fail-count').textContent  = `${_failed} failed`;
+  document.getElementById('total-count').textContent = `${total} total`;
+  document.title = `${_failed > 0 ? '✗' : '✓'} Chunk A ZIP Tests (${_passed}/${total})`;
+}
+
+
+/* ================================================================
+   TESTS
+   ================================================================ */
+async function runTests() {
+
+  /* ── Suite 1: Basic ZIP loading ────────────────────────────── */
+  suite('BankLoader.loadZip — valid bank');
+
+  await test('valid zip with text-only bank returns valid:true', async () => {
+    const file   = await makeValidZip(makeMinimalBank());
+    const result = await BankLoader.loadZip(file);
+    assert.true(result.valid);
+  });
+
+  await test('bank object is returned correctly', async () => {
+    const bank   = makeMinimalBank();
+    const file   = await makeValidZip(bank);
+    const result = await BankLoader.loadZip(file);
+    assert.eq(result.bank.meta.pool_id, 'test-v1');
+    assert.eq(result.bank.questions.length, 1);
+  });
+
+  await test('text-only bank returns empty imageMap', async () => {
+    const file   = await makeValidZip(makeMinimalBank());
+    const result = await BankLoader.loadZip(file);
+    assert.true(result.imageMap instanceof Map);
+    assert.eq(result.imageMap.size, 0);
+  });
+
+  await test('valid zip with figure returns imageMap entry', async () => {
+    const bank = makeBankWithFigure();
+    const file = await makeValidZip(bank, { 'diagram.png': makeTinyPng() });
+    const result = await BankLoader.loadZip(file);
+    assert.true(result.valid);
+    assert.true(result.imageMap.has('diagram.png'));
+  });
+
+  await test('imageMap values are blob: URLs', async () => {
+    const bank = makeBankWithFigure();
+    const file = await makeValidZip(bank, { 'diagram.png': makeTinyPng() });
+    const result = await BankLoader.loadZip(file);
+    const url = result.imageMap.get('diagram.png');
+    assert.true(url.startsWith('blob:'));
+  });
+
+  await test('multiple figures all appear in imageMap', async () => {
+    const bank = {
+      meta: { title: 'Multi', pool_id: 'multi-v1', version: '1.0' },
+      questions: [
+        { id: 'Q001', question: 'Q?', figure: { file: 'fig1.png', alt: 'Fig 1' },
+          answers: { A:'a',B:'b',C:'c',D:'d' }, correct: 'A', annotation: null },
+        { id: 'Q002', question: 'Q?', figure: { file: 'fig2.png', alt: 'Fig 2' },
+          answers: { A:'a',B:'b',C:'c',D:'d' }, correct: 'B', annotation: null },
+      ],
+    };
+    const file = await makeValidZip(bank, {
+      'fig1.png': makeTinyPng(),
+      'fig2.png': makeTinyPng(),
+    });
+    const result = await BankLoader.loadZip(file);
+    assert.true(result.valid);
+    assert.eq(result.imageMap.size, 2);
+    assert.true(result.imageMap.has('fig1.png'));
+    assert.true(result.imageMap.has('fig2.png'));
+  });
+
+
+  /* ── Suite 2: ZIP structure errors ─────────────────────────── */
+  suite('BankLoader.loadZip — ZIP structure errors');
+
+  await test('zip missing bank.json returns error', async () => {
+    const zip  = new JSZip();
+    zip.file('wrong.json', '{}');
+    const file   = await zipToFile(zip);
+    const result = await BankLoader.loadZip(file);
+    assert.false(result.valid);
+    assert.includes(result.error, 'bank.json');
+  });
+
+  await test('zip with invalid JSON in bank.json returns error', async () => {
+    const zip = new JSZip();
+    zip.file('bank.json', 'this is not json {{{');
+    const file   = await zipToFile(zip);
+    const result = await BankLoader.loadZip(file);
+    assert.false(result.valid);
+    assert.includes(result.error, 'JSON');
+  });
+
+  await test('figure referenced in bank.json but missing from zip returns error', async () => {
+    const bank = makeBankWithFigure(); // references diagram.png
+    const file = await makeValidZip(bank, {}); // no figures added
+    const result = await BankLoader.loadZip(file);
+    assert.false(result.valid);
+    assert.includes(result.error, 'diagram.png');
+  });
+
+  await test('error message includes figures/ path', async () => {
+    const bank = makeBankWithFigure();
+    const file = await makeValidZip(bank, {});
+    const result = await BankLoader.loadZip(file);
+    assert.includes(result.error, 'figures/');
+  });
+
+
+  /* ── Suite 3: Schema errors propagate through zip ─────────── */
+  suite('BankLoader.loadZip — schema errors propagate');
+
+  await test('missing meta returns schema error', async () => {
+    const bad = { questions: [{ id:'Q1', question:'Q?', answers:{A:'a',B:'b',C:'c',D:'d'}, correct:'A' }] };
+    const file = await makeValidZip(bad);
+    const result = await BankLoader.loadZip(file);
+    assert.false(result.valid);
+    assert.includes(result.error, 'meta');
+  });
+
+  await test('invalid correct field returns schema error', async () => {
+    const bad = makeMinimalBank({
+      questions: [{
+        id: 'Q001', question: 'Q?',
+        answers: { A:'a',B:'b',C:'c',D:'d' }, correct: 'E', annotation: null,
+      }],
+    });
+    const file = await makeValidZip(bad);
+    const result = await BankLoader.loadZip(file);
+    assert.false(result.valid);
+    assert.includes(result.error, 'correct');
+  });
+
+  await test('duplicate question IDs returns schema error', async () => {
+    const q = { id:'Q001', question:'Q?', answers:{A:'a',B:'b',C:'c',D:'d'}, correct:'A', annotation:null };
+    const bad = { meta: { title:'T', pool_id:'p', version:'1' }, questions: [q, {...q}] };
+    const file = await makeValidZip(bad);
+    const result = await BankLoader.loadZip(file);
+    assert.false(result.valid);
+    assert.includes(result.error, 'Duplicate');
+  });
+
+
+  /* ── Suite 4: figure field validation ──────────────────────── */
+  suite('BankLoader.validate — figure field');
+
+  await test('question with null figure is valid', () => {
+    const bank = makeMinimalBank({
+      questions: [{
+        id:'Q001', question:'Q?', figure: null,
+        answers:{A:'a',B:'b',C:'c',D:'d'}, correct:'A', annotation:null,
+      }],
+    });
+    const r = BankLoader.validate(bank);
+    assert.true(r.valid);
+  });
+
+  await test('question with no figure field is valid', () => {
+    const bank = makeMinimalBank();
+    const r = BankLoader.validate(bank);
+    assert.true(r.valid);
+  });
+
+  await test('figure missing file property fails validation', () => {
+    const bank = makeMinimalBank({
+      questions: [{
+        id:'Q001', question:'Q?', figure: { alt: 'some alt' },
+        answers:{A:'a',B:'b',C:'c',D:'d'}, correct:'A', annotation:null,
+      }],
+    });
+    const r = BankLoader.validate(bank);
+    assert.false(r.valid);
+    assert.includes(r.error, 'figure.file');
+  });
+
+  await test('figure missing alt property fails validation', () => {
+    const bank = makeMinimalBank({
+      questions: [{
+        id:'Q001', question:'Q?', figure: { file: 'img.png' },
+        answers:{A:'a',B:'b',C:'c',D:'d'}, correct:'A', annotation:null,
+      }],
+    });
+    const r = BankLoader.validate(bank);
+    assert.false(r.valid);
+    assert.includes(r.error, 'figure.alt');
+  });
+
+  await test('figure with empty file string fails validation', () => {
+    const bank = makeMinimalBank({
+      questions: [{
+        id:'Q001', question:'Q?', figure: { file: '  ', alt: 'desc' },
+        answers:{A:'a',B:'b',C:'c',D:'d'}, correct:'A', annotation:null,
+      }],
+    });
+    const r = BankLoader.validate(bank);
+    assert.false(r.valid);
+    assert.includes(r.error, 'figure.file');
+  });
+
+  await test('figure as array (not object) fails validation', () => {
+    const bank = makeMinimalBank({
+      questions: [{
+        id:'Q001', question:'Q?', figure: ['img.png'],
+        answers:{A:'a',B:'b',C:'c',D:'d'}, correct:'A', annotation:null,
+      }],
+    });
+    const r = BankLoader.validate(bank);
+    assert.false(r.valid);
+    assert.includes(r.error, 'figure');
+  });
+
+  await test('valid figure object passes validation', () => {
+    const bank = makeMinimalBank({
+      questions: [{
+        id:'Q001', question:'Q?',
+        figure: { file: 'circuit.png', alt: 'A circuit schematic' },
+        answers:{A:'a',B:'b',C:'c',D:'d'}, correct:'A', annotation:null,
+      }],
+    });
+    const r = BankLoader.validate(bank);
+    assert.true(r.valid);
+  });
+}
+
+
+/* ================================================================
+   BOOT
+   ================================================================ */
+document.addEventListener('DOMContentLoaded', async () => {
+  await runTests();
+  render();
+});
+</script>
+</body>
+</html>
