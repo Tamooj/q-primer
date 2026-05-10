@@ -22,9 +22,11 @@ Or use the GitHub **Code → Download ZIP** button and extract it anywhere on yo
 
 Open `index.html` directly in any modern browser (Chrome, Firefox, Edge, or Safari). You can do this by double-clicking the file in your file manager, or by dragging it into a browser window. No local web server is needed.
 
+Alternatively, the app is hosted on GitHub Pages at **https://tamooj.github.io/q-primer/** — no download required.
+
 **3. Load a question bank**
 
-Click the question bank area and select a `.json` or `.zip` bank file from the `banks/` folder. A 31-question sample for the FCC Amateur Radio General Class exam is included to get you started.
+Either drag a `.json` or `.zip` bank file from the `banks/` folder onto the drop zone, or paste a direct URL into the URL field and click Load. A 31-question sample for the FCC Amateur Radio General Class exam is included to get you started. Banks loaded by URL are remembered and reloaded automatically on your next visit.
 
 **4. Start studying**
 
@@ -40,7 +42,7 @@ Q-Primer calls Anthropic's Claude API directly from your browser; there is no in
 
 The quiz itself — loading a question bank, answering questions, and seeing correct/incorrect feedback — works without an API key. The AI coach explanation that appears after each answer is what requires the API key.
 
-Instructions for obtaining an API key will be included in the full setup guide. The short version: create an account at [console.anthropic.com](https://console.anthropic.com), navigate to API Keys, and generate a key. Cut/Paste the key directly in the app; it is never stored beyond your browser session.
+Instructions for obtaining an API key will be included in the full setup guide. The short version: create an account at [console.anthropic.com](https://console.anthropic.com), navigate to API Keys, and generate a key. Paste it into the app. By default the key is held only in your browser tab (cleared when you close it); check **Remember this key** to save it to `localStorage` so it persists across sessions on your device.
 
 ---
 
@@ -100,7 +102,7 @@ What types of questions or concepts are poorly served by text-based AI explanati
 
 Q-Primer ships with question banks for standardized exams. The initial bank targets the **FCC Amateur Radio General Class license exam** (2023–2027 question pool). A 31-question development sample is in [`/banks`](banks/) for testing; the full 429-question pool is in conversion.
 
-Banks are either plain JSON files (text-only questions) or ZIP archives (questions with supporting figures). The format is documented in [`docs/01-question-bank-schema.md`](docs/01-question-bank-schema.md). Anyone can contribute a bank by following that guide.
+Banks are either plain JSON files (text-only questions) or ZIP archives (questions with supporting figures such as schematics and diagrams). The format is documented in [`docs/01-question-bank-schema.md`](docs/01-question-bank-schema.md). Anyone can contribute a bank by following that guide; the `construction/` directory contains a build script and example staging directories.
 
 ---
 

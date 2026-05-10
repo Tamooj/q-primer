@@ -1,5 +1,5 @@
 # Question Bank Schema Specification
-## Q-Primer — v1.0
+## Q-Primer — v1.1
 
 ---
 
@@ -7,18 +7,40 @@
 
 A question bank is a single JSON file that fully describes a multiple-choice test pool. The app treats the file as a pure data dependency — it contains no subject-specific logic. The app never generates, infers, or modifies question content.
 
-Question banks are portable, versionable, and human-readable. They may be loaded from local file upload or (future) remote URL.
+Question banks are portable, versionable, and human-readable. They may be loaded from local file upload or from a remote URL.
+
+---
+
+## Delivery Format
+
+Question banks come in two forms:
+
+**Plain JSON (`.json`)** — text-only banks with no figures. A single file containing the full schema.
+
+**ZIP archive (`.zip`)** — banks whose questions reference figures (diagrams, schematics, charts). The ZIP must contain:
+```
+bank.json          — the question bank (full schema, required)
+figures/           — directory of image files (PNG, JPG, or other browser-renderable formats)
+  G7-1.png
+  G3-1.jpg
+  ...
+```
+`bank.json` references figure files by filename only (not path). The app looks for them under `figures/` inside the ZIP. Every filename referenced in a question's `figure.file` field must exist in `figures/`; the build script (`construction/build-bank.py`) enforces this.
+
+The app deduplicates figures automatically: multiple questions may reference the same file; the image is extracted from the ZIP exactly once.
 
 ---
 
 ## File Naming Convention
 
 ```
-{subject-slug}-{pool-id}-{version}.json
+{subject-slug}-{pool-id}-{version}.json    (plain JSON)
+{pool-id}.zip                              (ZIP with figures)
 ```
 
 Examples:
 - `ham-general-2023-2027-v1.1.json`
+- `fcc-element3-2023-2027-sample.zip`
 - `us-citizenship-2024-v1.0.json`
 - `ap-biology-2025-v1.0.json`
 
@@ -129,6 +151,7 @@ Each element is a question object.
   },
   "correct": "C",
   "reference": "97.301(d)",
+  "figure": null,
   "annotation": null
 }
 ```
@@ -144,6 +167,7 @@ Each element is a question object.
 | `answers` | object | Yes | Keys must be `A`, `B`, `C`, `D`. All four required. |
 | `correct` | string | Yes | Must be `A`, `B`, `C`, or `D`. |
 | `reference` | string | No | Rule citation, chapter reference, etc. Displayed in UI. |
+| `figure` | object\|null | No | See Figure schema below. Required for questions that reference a diagram. |
 | `annotation` | object\|null | No | See Annotation schema below. |
 
 ### Answer Key Rules
@@ -151,6 +175,33 @@ Each element is a question object.
 - `correct` is the **sole authoritative source** for the correct answer
 - The app must never derive or infer the correct answer from any other field
 - Answer text must be stored verbatim — no reformatting, no punctuation normalization
+
+---
+
+## `figure` Object
+
+Present when a question asks the student to interpret a diagram, schematic, chart, or other image. The bank must be delivered as a ZIP archive when any questions include figures.
+
+```json
+"figure": {
+  "file": "G7-1.png",
+  "alt": "Figure G7-1: Two-stage RF amplifier schematic with eleven numbered component symbols including transistors, diodes, resistors, capacitors, inductors, and a transformer"
+}
+```
+
+### `figure` Field Reference
+
+| Field | Type | Required | Notes |
+|-------|------|----------|-------|
+| `file` | string | Yes | Filename only — no path. File must exist at `figures/{file}` inside the ZIP. |
+| `alt` | string | Yes | Descriptive text for accessibility and AI coach context. Should describe what the figure shows in enough detail for someone who cannot see it to reason about the question. |
+
+### Notes
+
+- Multiple questions may reference the same figure file. The app extracts each unique file once.
+- `alt` text is injected into the AI coach prompt when the question is presented. Write it descriptively — the coach uses it to reason about diagram-specific questions.
+- Omit the `figure` field (or set to `null`) for questions that do not reference a figure. Do not include a `figure` field with an empty `file` string.
+- Supported image formats: PNG, JPG/JPEG, GIF, SVG, WebP — any format a modern browser can render in an `<img>` tag.
 
 ---
 
@@ -199,6 +250,8 @@ A valid question bank must satisfy:
 4. All `id` values unique within the bank
 5. If `structure` present: all `subelement` and `group` values on questions must reference defined IDs
 6. No question or answer text may be empty string
+7. If `figure` present: both `figure.file` and `figure.alt` must be non-empty strings
+8. If any question has a `figure`, the bank must be delivered as a ZIP and `figures/{file}` must exist in the archive
 
 ---
 
@@ -210,7 +263,7 @@ A valid question bank must satisfy:
 
 ---
 
-## Example: Minimal Valid Bank (3 questions, no structure, no annotations)
+## Example: Minimal Valid Bank (text-only, no structure, no annotations)
 
 ```json
 {
@@ -233,6 +286,41 @@ A valid question bank must satisfy:
     }
   ]
 }
+```
+
+## Example: Question with Figure (ZIP delivery required)
+
+```json
+{
+  "id": "G7A09",
+  "subelement": "G7",
+  "group": "G7A",
+  "question": "Which symbol in figure G7-1 represents a field effect transistor?",
+  "figure": {
+    "file": "G7-1.png",
+    "alt": "Figure G7-1: Two-stage RF amplifier schematic with eleven numbered component symbols including transistors, diodes, resistors, capacitors, inductors, and a transformer"
+  },
+  "answers": {
+    "A": "Symbol 2",
+    "B": "Symbol 5",
+    "C": "Symbol 1",
+    "D": "Symbol 4"
+  },
+  "correct": "C",
+  "reference": null,
+  "annotation": {
+    "type": "schematic",
+    "content": "Symbol 1 is an N-channel JFET. Gate arrow points INTO the channel — inward arrow = N-channel. Symbol 2 (NPN BJT) is a bipolar transistor, not a FET.",
+    "errata": null
+  }
+}
+```
+
+The corresponding ZIP structure:
+```
+bank.json
+figures/
+  G7-1.png
 ```
 
 ---

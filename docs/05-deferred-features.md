@@ -25,13 +25,11 @@ These features were deliberately excluded from v1 scope. Architecture decisions 
 
 ---
 
-## Remote Bank Loading
+## ~~Remote Bank Loading~~ *(shipped)*
 
-**What:** Load question banks by URL from the repo, not just local file upload. Bank browser UI showing available published banks.
+URL loading is implemented. `BankLoader.loadFromUrl(url)` fetches a bank by URL, normalises Google Drive share links, and dispatches to JSON or ZIP processing. The last-used URL is persisted to `localStorage` and auto-reloaded on page open.
 
-**Why deferred:** Requires CORS-friendly hosting and a bank index file. No server complexity, but needs repo infrastructure in place first.
-
-**Architectural hook:** `BankLoader` accepts either a File object or a URL string. V1 implements File only. URL path is a stub.
+A bank discovery / browser UI is still deferred.
 
 ---
 

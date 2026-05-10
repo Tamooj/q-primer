@@ -16,9 +16,9 @@ All persistent state lives in `localStorage`. All API calls go directly from the
 - **Single HTML file** — HTML + CSS + JS, no bundler, no framework dependencies
 - **No backend** — zero server components in v1
 - **External dependencies** — loaded from CDN only, pinned versions
-  - No required dependencies beyond vanilla JS for v1
+  - JSZip 3.10.1 — ZIP archive parsing for figure-bearing banks
 - **Browser support** — modern evergreen browsers only (Chrome, Firefox, Safari, Edge)
-- **No localStorage for API key** — API key stored in `sessionStorage` only (cleared on tab close)
+- **API key storage** — stored in `sessionStorage` by default (cleared on tab close); optionally persisted to `localStorage` via a "Remember this key" checkbox. User controls which.
 
 ---
 
@@ -39,7 +39,7 @@ All persistent state lives in `localStorage`. All API calls go directly from the
 │                    │  ┌───────────────────────┐  │ │
 │                    │  │  Coach Panel          │  │ │
 │                    │  │  - AI response        │  │ │
-│                    │  │  - Explain button     │  │ │
+│                    │  │  - Discuss button     │  │ │
 │                    │  │  - Token usage        │  │ │
 │                    │  └───────────────────────┘  │ │
 │                    │  ┌───────────────────────┐  │ │
@@ -76,13 +76,23 @@ API key present in sessionStorage, question bank loaded in memory. Setup Panel i
 
 Each module is a self-contained JS object or set of functions. No module reaches into another module's internal state — all communication through defined interfaces.
 
+### `Storage`
+Responsibilities:
+- Read and write all `localStorage` / `sessionStorage` keys under the `q-primer:` namespace
+- Single source of truth for key names — no other module references storage keys directly
+- Provides: API key (session), remembered API key (persistent), student profile, session state, last-used bank
+
+Does not: touch the DOM, make API calls, hold in-memory state.
+
 ### `BankLoader`
 Responsibilities:
-- Accept file upload (JSON)
+- Accept file upload (JSON or ZIP) or a remote URL
 - Parse and validate against schema
-- Return a validated bank object or a structured error
+- For ZIP files: extract `bank.json` and all referenced figure files; build an `imageMap` (`Map<filename, blobURL>`)
+- For URLs: normalize Google Drive share links; fetch and dispatch to JSON or ZIP path by content type
+- Return a validated `{ bank, imageMap }` result or a structured error
 
-Does not: store state, touch the DOM, make API calls.
+Does not: store state, touch the DOM, make API calls to the AI.
 
 ### `SessionState`
 Responsibilities:
@@ -225,8 +235,11 @@ Result: {correct|incorrect}
 Please explain why {correct} is correct and address why the other choices are wrong.
 ```
 
-### Pre-answer (explain on demand only)
-If the student requests explanation before answering, correct answer is withheld from the message. The `PromptBuilder` has two message construction paths: `buildPostAnswer()` and `buildPreExplain()`. The correct answer field is only included in `buildPostAnswer()`.
+### Post-answer coaching behaviour
+- **Wrong answer**: AI explanation fires automatically.
+- **Correct answer**: A **Discuss** button appears. The student can initiate a coaching conversation if they want to go deeper; no API call is made automatically.
+
+The `PromptBuilder` has two message construction paths: `buildPostAnswer()` and `buildPreExplain()`. The correct answer field is only included in `buildPostAnswer()`.
 
 ---
 
@@ -246,6 +259,8 @@ The app accumulates these in `session.token_usage` and displays a running total 
 ```
 q-primer:session        — current session object (full state schema)
 q-primer:student        — student profile object
+q-primer:apikey-saved   — API key, persisted only when user checks "Remember this key"
+q-primer:last-bank      — last loaded bank descriptor { source, url?, filename? }
 q-primer:bank:{pool_id} — cached bank JSON (future, not v1)
 ```
 
@@ -253,8 +268,10 @@ Keys are namespaced to avoid collisions with other apps.
 
 `sessionStorage` key:
 ```
-q-primer:apikey         — API key, cleared on tab close
+q-primer:apikey         — API key, cleared on tab close (default, without "Remember")
 ```
+
+The `last-bank` entry allows the app to restore context on next visit: URL banks are automatically re-fetched; file banks show the previous filename as a hint in the drop zone (the file itself cannot be re-opened without user interaction).
 
 ---
 
@@ -268,19 +285,19 @@ q-primer:apikey         — API key, cleared on tab close
 
 ---
 
-## File Structure (delivered artifact)
+## File Structure
 
 ```
-q-primer.html           — complete application, single file
-```
-
-For the repo:
-```
-/index.html             — application
-/banks/                   — published question banks
-/spec/                    — this document and schema spec
-/etl/                     — (future) conversion tools
-/README.md                — setup and usage guide
+/index.html                  — complete application (single file)
+/banks/                      — published question banks (.json and .zip)
+/construction/               — staging directories + build-bank.py for ZIP assembly
+  build-bank.py              — assembles a bank ZIP from a staging directory
+  {staging-dir}/
+    bank.json
+    figures/
+/docs/                       — specification documents
+/tests/                      — in-browser test suites (test-chunk-*.html)
+/README.md                   — setup and usage guide
 ```
 
 ---
