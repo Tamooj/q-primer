@@ -1169,12 +1169,32 @@
         const hasBank = AppState.hasBank();
         const hasKey  = AppState.hasApiKey();
 
-        el.startBtn.disabled = !(hasBank && hasKey);
+        // API key is optional — the quiz works without it; coaching just won't fire.
+        el.startBtn.disabled = !hasBank;
 
-        if      (!hasBank && !hasKey) el.startHint.textContent = 'Load a question bank and enter your API key to begin.';
-        else if (!hasBank)            el.startHint.textContent = 'Load a question bank to begin.';
-        else if (!hasKey)             el.startHint.textContent = 'Enter your Anthropic API key to begin.';
-        else                          el.startHint.textContent = '';
+        if (!hasBank) {
+          el.startBtn.textContent  = 'Start Studying';
+          el.startHint.textContent = 'Load a question bank to begin.';
+          return;
+        }
+
+        // Check for a resumable session matching the loaded bank.
+        const bank  = AppState.getBank();
+        const saved = Storage.getSession();
+        if (saved && saved.session && saved.session.bank_id === bank.meta.pool_id) {
+          const answered = saved.session.progress.answered.length;
+          const total    = bank.questions.length;
+          if (answered > 0) {
+            el.startBtn.textContent  = 'Resume Session';
+            el.startHint.textContent =
+              `${answered}/${total} questions answered — your progress will be restored.` +
+              (!hasKey ? ' (No API key — AI coaching will be unavailable.)' : '');
+            return;
+          }
+        }
+
+        el.startBtn.textContent  = 'Start Studying';
+        el.startHint.textContent = hasKey ? '' : 'No API key — AI coaching will be unavailable.';
       }
 
       // ── Setup: event handlers ─────────────────────────────────────
