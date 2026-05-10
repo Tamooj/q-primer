@@ -2072,12 +2072,17 @@ Guidelines:
               }
             }
             showNextButton(actions);
-          }, 200);
 
-          // Trigger AI coach (wired in Chunk C)
-          if (typeof CoachAPI !== 'undefined') {
-            CoachAPI.explain(question, selectedChoice);
-          }
+            // Wrong answer: explain automatically.
+            // Correct answer: show a Discuss button — user initiates if they want.
+            if (typeof CoachAPI !== 'undefined') {
+              if (!isCorrect) {
+                CoachAPI.explain(question, selectedChoice);
+              } else {
+                showDiscussButton(actions, question, selectedChoice);
+              }
+            }
+          }, 200);
         });
 
         skipBtn.addEventListener('click', () => {
@@ -2100,6 +2105,21 @@ Guidelines:
         nextBtn.textContent = 'Next Question →';
         nextBtn.addEventListener('click', () => QuizEngine.advance());
         actionsEl.appendChild(nextBtn);
+      }
+
+      /**
+       * Append a "Discuss" button to the actions row (correct-answer path).
+       * Clicking it triggers the AI explanation on demand, then removes the button.
+       */
+      function showDiscussButton(actionsEl, question, chosenKey) {
+        const discussBtn = document.createElement('button');
+        discussBtn.className   = 'btn btn-ghost';
+        discussBtn.textContent = 'Discuss ↗';
+        discussBtn.addEventListener('click', () => {
+          discussBtn.remove();
+          CoachAPI.explain(question, chosenKey);
+        });
+        actionsEl.appendChild(discussBtn);
       }
 
       /** Render the session-complete summary in the question panel. */
