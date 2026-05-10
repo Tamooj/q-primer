@@ -28,9 +28,11 @@ The coach calibrates its explanations to a **student profile**: a short free-tex
 
 ---
 
-## Current Status — Seeking Educator Feedback
+## Current Status
 
-**Q-Primer is under active development.** The application does not yet exist — we are in the specification and early build phase. We are reaching out to educators now, before the code is written, because we want pedagogical feedback to shape the design while it can still be acted on cheaply.
+**Q-Primer is working and available for testing.** The core application is built and functional: question banks load, the quiz loop runs, session progress persists across page reloads, and the AI coach is live. We are actively seeking educator feedback to shape ongoing development.
+
+To try it: open [`app/q-primer.html`](app/q-primer.html) in any modern browser, load a question bank from [`/banks`](banks/), and start studying. An API key is optional — the quiz works without one; coaching requires it.
 
 The specification documents in [`/docs`](docs/) describe the intended behavior in detail, including explicit questions for educator review. The most relevant document for non-technical reviewers is:
 
@@ -70,9 +72,9 @@ What types of questions or concepts are poorly served by text-based AI explanati
 
 ## Question Banks
 
-Q-Primer ships with question banks for standardized exams. The initial bank targets the **FCC Amateur Radio General Class license exam** (2023–2027 question pool). A 35-question development sample is in [`/banks`](banks/) for testing; the full 429-question pool is in conversion.
+Q-Primer ships with question banks for standardized exams. The initial bank targets the **FCC Amateur Radio General Class license exam** (2023–2027 question pool). A 31-question development sample is in [`/banks`](banks/) for testing; the full 429-question pool is in conversion.
 
-Banks are plain JSON files in a documented schema. Anyone can contribute a bank by following the format guide in [`docs/01-question-bank-schema.md`](docs/01-question-bank-schema.md).
+Banks are either plain JSON files (text-only questions) or ZIP archives (questions with supporting figures). The format is documented in [`docs/01-question-bank-schema.md`](docs/01-question-bank-schema.md). Anyone can contribute a bank by following that guide.
 
 ---
 
@@ -82,7 +84,7 @@ Banks are plain JSON files in a documented schema. Anyone can contribute a bank 
 
 If you'd prefer to share feedback privately, reach out at **q-primer@highcentrality.com**.
 
-We will incorporate substantive feedback into the specification before building begins in earnest. Feedback received after the build starts will inform v2 priorities.
+All feedback is welcome — early input shapes the design most effectively, but there is no cutoff. Issues tagged `pedagogy` are tracked separately from technical work.
 
 ---
 
