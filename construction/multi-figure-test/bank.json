@@ -1,0 +1,190 @@
+{
+  "meta": {
+    "title": "Ham Radio General — Multi-Figure Test",
+    "subtitle": "Two-figure test bank for ZIP + multi-image rendering tests",
+    "pool_id": "fcc-element3-multi-figure-test-v1",
+    "version": "1.0",
+    "effective_from": "2023-07-01",
+    "effective_to": "2027-06-30",
+    "total_questions": 7,
+    "passing_score": null,
+    "exam_question_count": null,
+    "source_url": "https://www.arrl.org/general-class-question-pool",
+    "description": "Minimal bank for Q-Primer multi-figure ZIP rendering tests. Contains questions referencing two distinct figures (G7-1.png schematic and G3-1.jpg ionosphere diagram) interleaved with plain questions, to verify that multiple images load independently and display correctly.",
+    "tags": ["amateur radio", "FCC", "test", "figures", "multi-figure"]
+  },
+
+  "structure": {
+    "levels": ["subelement", "group"],
+    "subelements": [
+      {
+        "id": "G3",
+        "title": "Radio Wave Propagation",
+        "exam_questions": 3,
+        "groups": [
+          { "id": "G3C", "title": "Ionospheric layers; critical angle and frequency; HF scatter; Near Vertical Incidence Skywave" }
+        ]
+      },
+      {
+        "id": "G7",
+        "title": "Practical Circuits",
+        "exam_questions": 3,
+        "groups": [
+          { "id": "G7A", "title": "Power supplies; schematic symbols" }
+        ]
+      }
+    ]
+  },
+
+  "questions": [
+    {
+      "id": "G7A09",
+      "subelement": "G7",
+      "group": "G7A",
+      "question": "Which symbol in figure G7-1 represents a field effect transistor?",
+      "figure": {
+        "file": "G7-1.png",
+        "alt": "Figure G7-1: Two-stage RF amplifier schematic with eleven numbered component symbols including transistors, diodes, resistors, capacitors, inductors, and a transformer"
+      },
+      "answers": {
+        "A": "Symbol 2",
+        "B": "Symbol 5",
+        "C": "Symbol 1",
+        "D": "Symbol 4"
+      },
+      "correct": "C",
+      "reference": null,
+      "annotation": {
+        "type": "schematic",
+        "content": "Symbol 1 is an N-channel JFET. Gate arrow points INTO the channel — inward arrow = N-channel. Symbol 2 (NPN BJT) is a bipolar transistor, not a FET. Symbol 4 is a varactor diode. Symbol 5 is a Zener diode.",
+        "errata": null
+      }
+    },
+    {
+      "id": "G3C01",
+      "subelement": "G3",
+      "group": "G3C",
+      "question": "Which ionospheric layer is closest to Earth's surface?",
+      "answers": {
+        "A": "The E layer",
+        "B": "The F1 layer",
+        "C": "The D layer",
+        "D": "The F2 layer"
+      },
+      "correct": "C",
+      "reference": null,
+      "annotation": {
+        "type": "concept",
+        "content": "The D layer is the lowest ionospheric layer, existing at approximately 60-90 km altitude. It is present only during daylight hours and primarily absorbs HF signals rather than refracting them, causing daytime signal attenuation on lower HF bands. Above it: E layer (~100-120 km), F1 (~170-250 km, daytime only), F2 (~250-400 km, present day and night).",
+        "errata": null
+      }
+    },
+    {
+      "id": "G3C05",
+      "subelement": "G3",
+      "group": "G3C",
+      "question": "Which of the following ionospheric layers is present only during daylight hours, as shown in figure G3-1?",
+      "figure": {
+        "file": "G3-1.jpg",
+        "alt": "Figure G3-1: Diagram showing ionospheric layers D, E, F1, and F2 by altitude and season, illustrating which layers are present during day and night and how layer heights vary between summer and winter"
+      },
+      "answers": {
+        "A": "E and F2",
+        "B": "F1 and F2",
+        "C": "D and F1",
+        "D": "D only"
+      },
+      "correct": "C",
+      "reference": null,
+      "annotation": {
+        "type": "concept",
+        "content": "The D layer and F1 layer exist only when solar radiation ionises the lower atmosphere during daylight. At night the D layer disappears entirely (allowing AM skywave), and the F1 and F2 layers merge into a single F layer. The E layer weakens at night but may persist weakly. The F2 layer is the most stable, present day and night, and is the primary layer for long-distance HF propagation.",
+        "errata": null
+      }
+    },
+    {
+      "id": "G7A07",
+      "subelement": "G7",
+      "group": "G7A",
+      "question": "What is the output waveform of an unfiltered full-wave rectifier connected to a resistive load?",
+      "answers": {
+        "A": "A series of DC pulses at twice the frequency of the AC input",
+        "B": "A series of DC pulses at the same frequency as the AC input",
+        "C": "A sine wave at half the frequency of the AC input",
+        "D": "A steady DC voltage"
+      },
+      "correct": "A",
+      "reference": null,
+      "annotation": {
+        "type": "waveform",
+        "content": "Full-wave rectifier flips both the positive and negative half-cycles of the AC input to the same polarity. Result: 60 Hz AC input produces 120 Hz pulsating DC output. Without a filter capacitor, the output drops to zero between pulses.",
+        "errata": null
+      }
+    },
+    {
+      "id": "G3C11",
+      "subelement": "G3",
+      "group": "G3C",
+      "question": "What does figure G3-1 illustrate about the F layer during summer compared to winter?",
+      "figure": {
+        "file": "G3-1.jpg",
+        "alt": "Figure G3-1: Diagram showing ionospheric layers D, E, F1, and F2 by altitude and season, illustrating which layers are present during day and night and how layer heights vary between summer and winter"
+      },
+      "answers": {
+        "A": "The F layer is lower and more densely ionized in summer",
+        "B": "The F1 and F2 layers are both distinct in summer but merge to a single F layer in winter",
+        "C": "The F layer disappears entirely during summer nights",
+        "D": "The F layer splits into three sub-layers during summer"
+      },
+      "correct": "B",
+      "reference": null,
+      "annotation": {
+        "type": "concept",
+        "content": "In summer, strong daytime solar radiation produces enough ionization to sustain two distinct F sub-layers: F1 (lower, ~170-250 km) and F2 (upper, ~250-400 km). In winter, weaker solar radiation means only a single merged F layer forms. The F2 layer is always the primary long-distance propagation layer; F1 is mainly significant in summer and at lower latitudes.",
+        "errata": null
+      }
+    },
+    {
+      "id": "G7A10",
+      "subelement": "G7",
+      "group": "G7A",
+      "question": "Which symbol in figure G7-1 represents a Zener diode?",
+      "figure": {
+        "file": "G7-1.png",
+        "alt": "Figure G7-1: Two-stage RF amplifier schematic with eleven numbered component symbols including transistors, diodes, resistors, capacitors, inductors, and a transformer"
+      },
+      "answers": {
+        "A": "Symbol 4",
+        "B": "Symbol 1",
+        "C": "Symbol 11",
+        "D": "Symbol 5"
+      },
+      "correct": "D",
+      "reference": null,
+      "annotation": {
+        "type": "schematic",
+        "content": "Symbol 5 is a Zener diode. Identification: standard diode triangle-and-bar, but the cathode bar has small bent/kinked ends (Z-shape). Symbol 4 (varactor) has a double-bar cathode. Symbol 1 is the JFET, Symbol 11 is a variable resistor.",
+        "errata": null
+      }
+    },
+    {
+      "id": "G3C03",
+      "subelement": "G3",
+      "group": "G3C",
+      "question": "Why is the F2 region the most useful ionospheric layer for long-distance HF propagation?",
+      "answers": {
+        "A": "It is the most densely ionized layer and reflects the highest frequencies",
+        "B": "It exists at the highest altitude and is present day and night",
+        "C": "It is present only at night when absorption is lowest",
+        "D": "It refracts signals at lower angles than other layers"
+      },
+      "correct": "B",
+      "reference": null,
+      "annotation": {
+        "type": "concept",
+        "content": "The F2 layer is useful for long-distance HF propagation for two reasons: its high altitude (~250-400 km) means each skip covers a greater ground distance, and it persists both day and night unlike D, E, and F1 layers. The D layer actually absorbs HF during the day. The F2 layer is the reason amateur operators can work intercontinental paths on 20, 17, 15, 12, and 10 meters around the clock near solar maximum.",
+        "errata": null
+      }
+    }
+  ]
+}

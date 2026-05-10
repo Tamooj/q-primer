@@ -212,11 +212,13 @@ const BankLoader = (() => {
     if (!result.valid) return result;
 
     const imageMap = new Map();
-    const figureRefs = result.bank.questions
-      .filter(q => q.figure && q.figure.file)
-      .map(q => q.figure.file);
+    const uniqueFigureFiles = [...new Set(
+      result.bank.questions
+        .filter(q => q.figure && q.figure.file)
+        .map(q => q.figure.file)
+    )];
 
-    for (const filename of figureRefs) {
+    for (const filename of uniqueFigureFiles) {
       const entry = zip.file(`figures/${filename}`);
       if (!entry) return fail(`Figure file not found in ZIP: figures/${filename}`);
       const blob = await entry.async('blob');
@@ -571,6 +573,104 @@ async function runTests() {
     });
     const r = BankLoader.validate(bank);
     assert.true(r.valid);
+  });
+
+
+  /* ── Suite 5: Figure deduplication & multi-format ──────────────────── */
+  suite('BankLoader.loadZip — figure deduplication & multi-format');
+
+  await test('3 questions sharing one figure → imageMap has exactly 1 entry', async () => {
+    const bank = {
+      meta: { title: 'Dedup', pool_id: 'dedup-v1', version: '1.0' },
+      questions: [
+        { id:'Q001', question:'Q?', figure:{ file:'shared.png', alt:'Shared figure' },
+          answers:{A:'a',B:'b',C:'c',D:'d'}, correct:'A', annotation:null },
+        { id:'Q002', question:'Q?', figure:{ file:'shared.png', alt:'Same figure again' },
+          answers:{A:'a',B:'b',C:'c',D:'d'}, correct:'B', annotation:null },
+        { id:'Q003', question:'Q?', figure:{ file:'shared.png', alt:'Same figure third time' },
+          answers:{A:'a',B:'b',C:'c',D:'d'}, correct:'C', annotation:null },
+      ],
+    };
+    const file = await makeValidZip(bank, { 'shared.png': makeTinyPng() });
+    const result = await BankLoader.loadZip(file);
+    assert.true(result.valid);
+    assert.eq(result.imageMap.size, 1);
+  });
+
+  await test('shared figure produces a valid blob: URL', async () => {
+    const bank = {
+      meta: { title: 'Dedup', pool_id: 'dedup2-v1', version: '1.0' },
+      questions: [
+        { id:'Q001', question:'Q?', figure:{ file:'shared.png', alt:'Figure' },
+          answers:{A:'a',B:'b',C:'c',D:'d'}, correct:'A', annotation:null },
+        { id:'Q002', question:'Q?', figure:{ file:'shared.png', alt:'Same figure' },
+          answers:{A:'a',B:'b',C:'c',D:'d'}, correct:'B', annotation:null },
+      ],
+    };
+    const file = await makeValidZip(bank, { 'shared.png': makeTinyPng() });
+    const result = await BankLoader.loadZip(file);
+    assert.true(result.imageMap.has('shared.png'));
+    assert.true(result.imageMap.get('shared.png').startsWith('blob:'));
+  });
+
+  await test('two distinct figures (PNG and JPG) both appear independently in imageMap', async () => {
+    const bank = {
+      meta: { title: 'Two Figs', pool_id: 'twofig-v1', version: '1.0' },
+      questions: [
+        { id:'Q001', question:'Q?', figure:{ file:'schematic.png', alt:'Schematic' },
+          answers:{A:'a',B:'b',C:'c',D:'d'}, correct:'A', annotation:null },
+        { id:'Q002', question:'Q?', figure:{ file:'diagram.jpg', alt:'Ionosphere diagram' },
+          answers:{A:'a',B:'b',C:'c',D:'d'}, correct:'B', annotation:null },
+      ],
+    };
+    const file = await makeValidZip(bank, {
+      'schematic.png': makeTinyPng(),
+      'diagram.jpg':   makeTinyPng(),
+    });
+    const result = await BankLoader.loadZip(file);
+    assert.true(result.valid);
+    assert.eq(result.imageMap.size, 2);
+    assert.true(result.imageMap.has('schematic.png'));
+    assert.true(result.imageMap.has('diagram.jpg'));
+  });
+
+  await test('JPG figure produces a blob: URL', async () => {
+    const bank = {
+      meta: { title: 'JPG', pool_id: 'jpg-v1', version: '1.0' },
+      questions: [{
+        id:'Q001', question:'Q?', figure:{ file:'layers.jpg', alt:'Ionosphere layers' },
+        answers:{A:'a',B:'b',C:'c',D:'d'}, correct:'A', annotation:null,
+      }],
+    };
+    const file = await makeValidZip(bank, { 'layers.jpg': makeTinyPng() });
+    const result = await BankLoader.loadZip(file);
+    assert.true(result.valid);
+    assert.true(result.imageMap.get('layers.jpg').startsWith('blob:'));
+  });
+
+  await test('mixed: 3 questions on PNG + 2 on JPG → imageMap size is 2', async () => {
+    const bank = {
+      meta: { title: 'Mixed Dedup', pool_id: 'mixed-v1', version: '1.0' },
+      questions: [
+        { id:'Q001', question:'Q?', figure:{ file:'fig-a.png', alt:'Fig A' },
+          answers:{A:'a',B:'b',C:'c',D:'d'}, correct:'A', annotation:null },
+        { id:'Q002', question:'Q?', figure:{ file:'fig-b.jpg', alt:'Fig B' },
+          answers:{A:'a',B:'b',C:'c',D:'d'}, correct:'A', annotation:null },
+        { id:'Q003', question:'Q?', figure:{ file:'fig-a.png', alt:'Fig A again' },
+          answers:{A:'a',B:'b',C:'c',D:'d'}, correct:'A', annotation:null },
+        { id:'Q004', question:'Q?', figure:{ file:'fig-b.jpg', alt:'Fig B again' },
+          answers:{A:'a',B:'b',C:'c',D:'d'}, correct:'A', annotation:null },
+        { id:'Q005', question:'Q?', figure:{ file:'fig-a.png', alt:'Fig A third' },
+          answers:{A:'a',B:'b',C:'c',D:'d'}, correct:'A', annotation:null },
+      ],
+    };
+    const file = await makeValidZip(bank, {
+      'fig-a.png': makeTinyPng(),
+      'fig-b.jpg': makeTinyPng(),
+    });
+    const result = await BankLoader.loadZip(file);
+    assert.true(result.valid);
+    assert.eq(result.imageMap.size, 2);
   });
 }
 
