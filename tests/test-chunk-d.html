@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Q-Primer — Chunk D Tests</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <style>
+    :root {
+      --pass: #22c55e; --fail: #ef4444;
+      --bg: #0f1117; --surface: #1a1d27; --border: #2e3347;
+      --text: #e8eaf0; --text-dim: #8b90a7; --accent: #4a9eff;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: 'IBM Plex Mono', monospace; font-size: 13px; line-height: 1.6; padding: 2rem; }
+    h1   { font-size: 1rem; color: var(--accent); letter-spacing: 0.05em; margin-bottom: 0.25rem; }
+    .subtitle { color: var(--text-dim); font-size: 0.78rem; margin-bottom: 1.5rem; }
+    #summary { display: flex; gap: 2rem; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 0.75rem 1.25rem; margin-bottom: 1.5rem; font-size: 0.85rem; }
+    .summary-pass  { color: var(--pass); font-weight: 600; }
+    .summary-fail  { color: var(--fail); font-weight: 600; }
+    .summary-total { color: var(--text-dim); }
+    .suite { margin-bottom: 1.5rem; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+    .suite-header { padding: 0.5rem 1rem; background: rgba(255,255,255,0.03); border-bottom: 1px solid var(--border); font-size: 0.72rem; font-weight: 600; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.08em; }
+    .test-row { display: flex; align-items: flex-start; gap: 0.75rem; padding: 0.45rem 1rem; border-bottom: 1px solid var(--border); font-size: 0.8rem; }
+    .test-row:last-child { border-bottom: none; }
+    .test-status { flex-shrink: 0; font-weight: 600; width: 3rem; }
+    .test-status.pass { color: var(--pass); }
+    .test-status.fail { color: var(--fail); }
+    .test-desc   { flex: 1; }
+    .test-detail { margin-top: 0.2rem; font-size: 0.72rem; color: var(--fail); font-style: italic; }
+    #loading { color: var(--text-dim); font-style: italic; margin-top: 1rem; }
+  </style>
+</head>
+<body>
+
+<h1>Q-PRIMER — CHUNK D TEST SUITE</h1>
+<div class="subtitle">Storage persistence · BankLoader.loadFromUrl (fetch-mocked)</div>
+
+<div id="summary">
+  <span class="summary-pass"  id="pass-count">…</span>
+  <span class="summary-fail"  id="fail-count">…</span>
+  <span class="summary-total" id="total-count"></span>
+</div>
+
+<div id="results"></div>
+<div id="loading">Running async tests…</div>
+
+<script>
+'use strict';
+
+/* ----------------------------------------------------------------
+   Storage — exact copy from index.html
+   ---------------------------------------------------------------- */
+const Storage = (() => {
+  const K_APIKEY        = 'q-primer:apikey';
+  const K_APIKEY_SAVED  = 'q-primer:apikey-saved';
+  const K_STUDENT   = 'q-primer:student';
+  const K_SESSION   = 'q-primer:session';
+  const K_LAST_BANK = 'q-primer:last-bank';
+
+  function safeGet(store, key) {
+    try { return JSON.parse(store.getItem(key)); }
+    catch { return null; }
+  }
+
+  return {
+    getApiKey()    { return sessionStorage.getItem(K_APIKEY) || ''; },
+    setApiKey(k)   { k ? sessionStorage.setItem(K_APIKEY, k) : sessionStorage.removeItem(K_APIKEY); },
+    clearApiKey()  { sessionStorage.removeItem(K_APIKEY); },
+
+    getRememberedKey()   { return localStorage.getItem(K_APIKEY_SAVED) || ''; },
+    setRememberedKey(k)  { k ? localStorage.setItem(K_APIKEY_SAVED, k) : localStorage.removeItem(K_APIKEY_SAVED); },
+    clearRememberedKey() { localStorage.removeItem(K_APIKEY_SAVED); },
+
+    getLastBank()   { return safeGet(localStorage, K_LAST_BANK); },
+    setLastBank(o)  { localStorage.setItem(K_LAST_BANK, JSON.stringify(o)); },
+    clearLastBank() { localStorage.removeItem(K_LAST_BANK); },
+
+    getStudent()   { return safeGet(localStorage, K_STUDENT); },
+    setStudent(o)  { localStorage.setItem(K_STUDENT, JSON.stringify(o)); },
+
+    getSession()   { return safeGet(localStorage, K_SESSION); },
+    setSession(o)  { localStorage.setItem(K_SESSION, JSON.stringify(o)); },
+    clearSession() { localStorage.removeItem(K_SESSION); },
+  };
+})();
+
+
+/* ----------------------------------------------------------------
+   BankLoader — exact copy from index.html
+   ---------------------------------------------------------------- */
+const BankLoader = (() => {
+
+  const REQUIRED_META     = ['title', 'pool_id', 'version'];
+  const REQUIRED_QUESTION = ['id', 'question', 'answers', 'correct'];
+  const ANSWER_KEYS       = ['A', 'B', 'C', 'D'];
+
+  const fail = (error) => ({ valid: false, error });
+
+  function validate(bank) {
+    if (!bank || typeof bank !== 'object' || Array.isArray(bank))
+      return fail('File is not a valid JSON object.');
+    if (!bank.meta || typeof bank.meta !== 'object' || Array.isArray(bank.meta))
+      return fail('Missing required "meta" object.');
+    for (const field of REQUIRED_META) {
+      if (typeof bank.meta[field] !== 'string' || bank.meta[field].trim() === '')
+        return fail(`meta.${field} is required and must be a non-empty string.`);
+    }
+    if (!Array.isArray(bank.questions)) return fail('Missing required "questions" array.');
+    if (bank.questions.length === 0)    return fail('Question bank must contain at least one question.');
+
+    const validSubelements = new Set();
+    const validGroups      = new Set();
+    if (bank.structure !== undefined && bank.structure !== null) {
+      if (!Array.isArray(bank.structure.subelements))
+        return fail('structure.subelements must be an array.');
+      for (let si = 0; si < bank.structure.subelements.length; si++) {
+        const sub = bank.structure.subelements[si];
+        if (!sub.id || typeof sub.id !== 'string')
+          return fail(`structure.subelements[${si}] must have a non-empty string id.`);
+        validSubelements.add(sub.id);
+        if (Array.isArray(sub.groups)) {
+          for (let gi = 0; gi < sub.groups.length; gi++) {
+            const g = sub.groups[gi];
+            if (!g.id || typeof g.id !== 'string')
+              return fail(`structure.subelements[${si}].groups[${gi}] must have a non-empty string id.`);
+            validGroups.add(g.id);
+          }
+        }
+      }
+    }
+    const hasStructure = validSubelements.size > 0;
+    const seenIds = new Set();
+
+    for (let i = 0; i < bank.questions.length; i++) {
+      const q  = bank.questions[i];
+      const at = `questions[${i}]`;
+      if (!q || typeof q !== 'object') return fail(`${at} must be an object.`);
+      for (const field of REQUIRED_QUESTION) {
+        if (q[field] === undefined || q[field] === null)
+          return fail(`${at}.${field} is required.`);
+      }
+      if (typeof q.id !== 'string' || q.id.trim() === '')
+        return fail(`${at}.id must be a non-empty string.`);
+      if (seenIds.has(q.id)) return fail(`Duplicate question ID: "${q.id}".`);
+      seenIds.add(q.id);
+      if (typeof q.question !== 'string' || q.question.trim() === '')
+        return fail(`${at}.question must be a non-empty string.`);
+      if (typeof q.answers !== 'object' || Array.isArray(q.answers) || q.answers === null)
+        return fail(`${at}.answers must be an object.`);
+      const foundKeys = Object.keys(q.answers).sort().join(',');
+      if (foundKeys !== 'A,B,C,D')
+        return fail(`${at}.answers must have exactly keys A, B, C, D. Found: ${foundKeys || '(none)'}`);
+      for (const k of ANSWER_KEYS) {
+        if (typeof q.answers[k] !== 'string' || q.answers[k].trim() === '')
+          return fail(`${at}.answers.${k} must be a non-empty string.`);
+      }
+      if (!ANSWER_KEYS.includes(q.correct))
+        return fail(`${at}.correct must be A, B, C, or D. Got: "${q.correct}"`);
+      if (q.annotation !== null && q.annotation !== undefined) {
+        if (typeof q.annotation !== 'object' || Array.isArray(q.annotation))
+          return fail(`${at}.annotation must be an object or null.`);
+        if (typeof q.annotation.type !== 'string' || q.annotation.type.trim() === '')
+          return fail(`${at}.annotation.type must be a non-empty string.`);
+        if (typeof q.annotation.content !== 'string' || q.annotation.content.trim() === '')
+          return fail(`${at}.annotation.content must be a non-empty string.`);
+      }
+      if (q.figure !== null && q.figure !== undefined) {
+        if (typeof q.figure !== 'object' || Array.isArray(q.figure))
+          return fail(`${at}.figure must be an object or null.`);
+        if (typeof q.figure.file !== 'string' || q.figure.file.trim() === '')
+          return fail(`${at}.figure.file must be a non-empty string.`);
+        if (typeof q.figure.alt !== 'string' || q.figure.alt.trim() === '')
+          return fail(`${at}.figure.alt must be a non-empty string (used for accessibility and AI context).`);
+      }
+      if (hasStructure) {
+        if (q.subelement && !validSubelements.has(q.subelement))
+          return fail(`${at}.subelement "${q.subelement}" is not defined in structure.subelements.`);
+        if (q.group && !validGroups.has(q.group))
+          return fail(`${at}.group "${q.group}" is not defined in structure.`);
+      }
+    }
+    return { valid: true, bank };
+  }
+
+  function load(file) {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        let parsed;
+        try { parsed = JSON.parse(e.target.result); }
+        catch (err) { resolve(fail(`Invalid JSON: ${err.message}`)); return; }
+        const result = validate(parsed);
+        resolve(result.valid ? { ...result, imageMap: null } : result);
+      };
+      reader.onerror = () => resolve(fail('Could not read file.'));
+      reader.readAsText(file);
+    });
+  }
+
+  async function loadZip(file) {
+    if (typeof JSZip === 'undefined')
+      return fail('JSZip library not loaded. Check your internet connection and reload.');
+    let zip;
+    try { zip = await JSZip.loadAsync(file); }
+    catch (err) { return fail(`Could not read ZIP: ${err.message}`); }
+
+    const bankEntry = zip.file('bank.json');
+    if (!bankEntry) return fail('ZIP must contain bank.json at the root level.');
+    let parsed;
+    try {
+      const text = await bankEntry.async('text');
+      parsed = JSON.parse(text);
+    } catch (err) { return fail(`Invalid JSON in bank.json: ${err.message}`); }
+
+    const result = validate(parsed);
+    if (!result.valid) return result;
+
+    const imageMap = new Map();
+    const figureRefs = result.bank.questions
+      .filter(q => q.figure && q.figure.file)
+      .map(q => q.figure.file);
+
+    for (const filename of figureRefs) {
+      const entry = zip.file(`figures/${filename}`);
+      if (!entry) return fail(`Figure file not found in ZIP: figures/${filename}`);
+      const blob = await entry.async('blob');
+      imageMap.set(filename, URL.createObjectURL(blob));
+    }
+    return { valid: true, bank: result.bank, imageMap };
+  }
+
+  function normalizeGoogleDriveUrl(url) {
+    const m = url.match(/drive\.google\.com\/file\/d\/([^/?#]+)/);
+    return m ? `https://drive.google.com/uc?export=download&id=${m[1]}` : url;
+  }
+
+  async function loadFromUrl(rawUrl) {
+    const url = normalizeGoogleDriveUrl(rawUrl.trim());
+    let response;
+    try {
+      response = await fetch(url);
+    } catch (err) {
+      return fail(
+        'Could not fetch URL. This may be a network or CORS error. ' +
+        'Host the file on GitHub Pages or another CORS-enabled server, ' +
+        'then paste the direct link here.'
+      );
+    }
+    if (!response.ok) return fail(`HTTP ${response.status} — could not load bank from URL.`);
+
+    const lower = url.split('?')[0].toLowerCase();
+    const ct    = response.headers.get('content-type') || '';
+    const isZip = lower.endsWith('.zip') || ct.includes('zip') || ct.includes('octet-stream');
+
+    if (isZip) {
+      try {
+        const blob = await response.blob();
+        const file = new File([blob], 'bank.zip', { type: 'application/zip' });
+        return loadZip(file);
+      } catch (err) { return fail(`Could not read ZIP from URL: ${err.message}`); }
+    } else {
+      let text;
+      try { text = await response.text(); }
+      catch (err) { return fail(`Could not read response: ${err.message}`); }
+      let parsed;
+      try { parsed = JSON.parse(text); }
+      catch (err) { return fail(`Invalid JSON at URL: ${err.message}`); }
+      const result = validate(parsed);
+      return result.valid ? { ...result, imageMap: null } : result;
+    }
+  }
+
+  return { validate, load, loadZip, loadFromUrl, normalizeGoogleDriveUrl };
+})();
+
+
+/* ----------------------------------------------------------------
+   Minimal valid bank fixture
+   ---------------------------------------------------------------- */
+const VALID_BANK = {
+  meta: { title: 'Test Bank', pool_id: 'test-v1', version: '1.0' },
+  questions: [{
+    id: 'Q1', question: 'What is 1+1?',
+    answers: { A: 'One', B: 'Two', C: 'Three', D: 'Four' },
+    correct: 'B', reference: null, annotation: null
+  }]
+};
+
+
+/* ----------------------------------------------------------------
+   Fetch mock helpers
+   ---------------------------------------------------------------- */
+let _lastFetchUrl = null;
+
+function makeFetchMock({ status = 200, body = '', contentType = 'application/json', throws = null } = {}) {
+  return async (url) => {
+    _lastFetchUrl = url;
+    if (throws) throw throws;
+    const text   = typeof body === 'string' ? body : JSON.stringify(body);
+    const blob   = new Blob([text]);
+    return {
+      ok:      status >= 200 && status < 300,
+      status,
+      headers: { get: (h) => h.toLowerCase() === 'content-type' ? contentType : null },
+      text:    async () => text,
+      blob:    async () => blob,
+    };
+  };
+}
+
+
+/* ----------------------------------------------------------------
+   Test runner — two-phase: register then execute sequentially
+   ---------------------------------------------------------------- */
+const _queue   = [];
+const _results = [];
+let   _suite   = '(default)';
+
+function suite(name) { _suite = name; }
+
+function test(desc, fn) {
+  const suiteName = _suite;
+  _queue.push(async () => {
+    try {
+      await fn();
+      _results.push({ suite: suiteName, desc, pass: true });
+    } catch (err) {
+      _results.push({ suite: suiteName, desc, pass: false, error: err.message });
+    }
+  });
+}
+
+const assert = {
+  equal(a, b)       { if (a !== b)   throw new Error(`Expected ${JSON.stringify(b)}, got ${JSON.stringify(a)}`); },
+  notEqual(a, b)    { if (a === b)   throw new Error(`Expected values to differ, both were ${JSON.stringify(a)}`); },
+  isNull(a)         { if (a !== null) throw new Error(`Expected null, got ${JSON.stringify(a)}`); },
+  notNull(a)        { if (a === null) throw new Error(`Expected non-null`); },
+  isTrue(a)         { if (a !== true) throw new Error(`Expected true, got ${JSON.stringify(a)}`); },
+  isFalse(a)        { if (a !== false)throw new Error(`Expected false, got ${JSON.stringify(a)}`); },
+  includes(str, sub){ if (!String(str).includes(sub)) throw new Error(`Expected "${str}" to include "${sub}"`); },
+  deepEqual(a, b)   {
+    const sa = JSON.stringify(a), sb = JSON.stringify(b);
+    if (sa !== sb) throw new Error(`Expected ${sb}, got ${sa}`);
+  },
+};
+
+function render() {
+  document.getElementById('loading').hidden = true;
+  const passed = _results.filter(r => r.pass).length;
+  const failed = _results.filter(r => !r.pass).length;
+  document.getElementById('pass-count').textContent  = `${passed} passed`;
+  document.getElementById('fail-count').textContent  = `${failed} failed`;
+  document.getElementById('total-count').textContent = `${_results.length} total`;
+
+  const byS = {};
+  for (const r of _results) { (byS[r.suite] = byS[r.suite] || []).push(r); }
+
+  const container = document.getElementById('results');
+  for (const [sName, tests] of Object.entries(byS)) {
+    const div = document.createElement('div'); div.className = 'suite';
+    const hdr = document.createElement('div'); hdr.className = 'suite-header';
+    hdr.textContent = sName; div.appendChild(hdr);
+    for (const t of tests) {
+      const row = document.createElement('div'); row.className = 'test-row';
+      const st  = document.createElement('span');
+      st.className = `test-status ${t.pass ? 'pass' : 'fail'}`;
+      st.textContent = t.pass ? 'PASS' : 'FAIL';
+      const desc = document.createElement('div'); desc.className = 'test-desc';
+      const name = document.createElement('div'); name.textContent = t.desc; desc.appendChild(name);
+      if (!t.pass) {
+        const detail = document.createElement('div'); detail.className = 'test-detail';
+        detail.textContent = t.error; desc.appendChild(detail);
+      }
+      row.appendChild(st); row.appendChild(desc); div.appendChild(row);
+    }
+    container.appendChild(div);
+  }
+}
+
+/* ----------------------------------------------------------------
+   STORAGE STATE SNAPSHOT — saved before any test runs,
+   restored unconditionally after all tests complete.
+   This ensures tests never corrupt real app data.
+   ---------------------------------------------------------------- */
+const _snap = {
+  rememberedKey: localStorage.getItem('q-primer:apikey-saved'),
+  lastBank:      localStorage.getItem('q-primer:last-bank'),
+};
+
+function restoreStorage() {
+  if (_snap.rememberedKey === null) localStorage.removeItem('q-primer:apikey-saved');
+  else localStorage.setItem('q-primer:apikey-saved', _snap.rememberedKey);
+
+  if (_snap.lastBank === null) localStorage.removeItem('q-primer:last-bank');
+  else localStorage.setItem('q-primer:last-bank', _snap.lastBank);
+}
+
+
+/* ================================================================
+   SUITE 1 — Storage: Remembered Key
+   ================================================================ */
+suite('Storage — Remembered Key');
+
+test('getRememberedKey returns empty string when nothing stored', () => {
+  localStorage.removeItem('q-primer:apikey-saved');
+  assert.equal(Storage.getRememberedKey(), '');
+});
+
+test('setRememberedKey stores a value retrievable by getRememberedKey', () => {
+  Storage.setRememberedKey('sk-ant-test-key');
+  assert.equal(Storage.getRememberedKey(), 'sk-ant-test-key');
+});
+
+test('setRememberedKey overwrites a previous value', () => {
+  Storage.setRememberedKey('sk-ant-first');
+  Storage.setRememberedKey('sk-ant-second');
+  assert.equal(Storage.getRememberedKey(), 'sk-ant-second');
+});
+
+test('setRememberedKey with empty string removes the key', () => {
+  Storage.setRememberedKey('sk-ant-test-key');
+  Storage.setRememberedKey('');
+  assert.equal(Storage.getRememberedKey(), '');
+  assert.isNull(localStorage.getItem('q-primer:apikey-saved'));
+});
+
+test('clearRememberedKey removes a stored value', () => {
+  Storage.setRememberedKey('sk-ant-test-key');
+  Storage.clearRememberedKey();
+  assert.equal(Storage.getRememberedKey(), '');
+});
+
+test('clearRememberedKey is safe to call when nothing stored', () => {
+  localStorage.removeItem('q-primer:apikey-saved');
+  Storage.clearRememberedKey(); // should not throw
+  assert.equal(Storage.getRememberedKey(), '');
+});
+
+
+/* ================================================================
+   SUITE 2 — Storage: Last Bank
+   ================================================================ */
+suite('Storage — Last Bank');
+
+test('getLastBank returns null when nothing stored', () => {
+  localStorage.removeItem('q-primer:last-bank');
+  assert.isNull(Storage.getLastBank());
+});
+
+test('setLastBank + getLastBank round-trips a URL entry', () => {
+  Storage.setLastBank({ source: 'url', url: 'https://example.com/bank.json' });
+  const got = Storage.getLastBank();
+  assert.equal(got.source, 'url');
+  assert.equal(got.url, 'https://example.com/bank.json');
+});
+
+test('setLastBank + getLastBank round-trips a file entry', () => {
+  Storage.setLastBank({ source: 'file', filename: 'my-bank.zip' });
+  const got = Storage.getLastBank();
+  assert.equal(got.source, 'file');
+  assert.equal(got.filename, 'my-bank.zip');
+});
+
+test('setLastBank overwrites previous value', () => {
+  Storage.setLastBank({ source: 'file', filename: 'old.zip' });
+  Storage.setLastBank({ source: 'url',  url: 'https://new.example.com/bank.json' });
+  const got = Storage.getLastBank();
+  assert.equal(got.source, 'url');
+  assert.equal(got.url, 'https://new.example.com/bank.json');
+});
+
+test('clearLastBank removes stored value', () => {
+  Storage.setLastBank({ source: 'file', filename: 'bank.zip' });
+  Storage.clearLastBank();
+  assert.isNull(Storage.getLastBank());
+});
+
+test('clearLastBank is safe to call when nothing stored', () => {
+  localStorage.removeItem('q-primer:last-bank');
+  Storage.clearLastBank(); // should not throw
+  assert.isNull(Storage.getLastBank());
+});
+
+test('getLastBank returns null gracefully on corrupt localStorage value', () => {
+  localStorage.setItem('q-primer:last-bank', 'NOT VALID JSON {{{');
+  assert.isNull(Storage.getLastBank());
+});
+
+
+/* ================================================================
+   SUITE 3 — BankLoader: normalizeGoogleDriveUrl
+   ================================================================ */
+suite('BankLoader — normalizeGoogleDriveUrl');
+
+test('standard Google Drive share URL is normalised to download URL', () => {
+  const input  = 'https://drive.google.com/file/d/1aBcDeFgHiJkLmN/view?usp=sharing';
+  const result = BankLoader.normalizeGoogleDriveUrl(input);
+  assert.equal(result, 'https://drive.google.com/uc?export=download&id=1aBcDeFgHiJkLmN');
+});
+
+test('Google Drive URL with no query string is normalised', () => {
+  const input  = 'https://drive.google.com/file/d/FILEID123/view';
+  const result = BankLoader.normalizeGoogleDriveUrl(input);
+  assert.equal(result, 'https://drive.google.com/uc?export=download&id=FILEID123');
+});
+
+test('Google Drive URL with fragment is normalised (fragment excluded from id)', () => {
+  const input  = 'https://drive.google.com/file/d/XYZABC/view?usp=sharing#section';
+  const result = BankLoader.normalizeGoogleDriveUrl(input);
+  assert.equal(result, 'https://drive.google.com/uc?export=download&id=XYZABC');
+});
+
+test('non-Google-Drive URL passes through unchanged', () => {
+  const input = 'https://tamooj.github.io/q-primer/banks/bank.json';
+  assert.equal(BankLoader.normalizeGoogleDriveUrl(input), input);
+});
+
+test('plain HTTP URL passes through unchanged', () => {
+  const input = 'http://example.com/bank.zip';
+  assert.equal(BankLoader.normalizeGoogleDriveUrl(input), input);
+});
+
+
+/* ================================================================
+   SUITE 4 — BankLoader: loadFromUrl — URL routing
+   ================================================================ */
+suite('BankLoader — loadFromUrl: URL routing');
+
+test('Google Drive share URL is normalised before fetch', async () => {
+  window.fetch = makeFetchMock({ body: VALID_BANK });
+  await BankLoader.loadFromUrl('https://drive.google.com/file/d/MYFILEID/view?usp=sharing');
+  assert.includes(_lastFetchUrl, 'uc?export=download&id=MYFILEID');
+});
+
+test('whitespace in URL is trimmed before fetch', async () => {
+  window.fetch = makeFetchMock({ body: VALID_BANK });
+  await BankLoader.loadFromUrl('  https://example.com/bank.json  ');
+  assert.equal(_lastFetchUrl, 'https://example.com/bank.json');
+});
+
+test('URL ending in .zip routes to ZIP loader (reports invalid ZIP, not JSON error)', async () => {
+  window.fetch = makeFetchMock({ body: 'not a zip', contentType: 'application/octet-stream' });
+  const result = await BankLoader.loadFromUrl('https://example.com/bank.zip');
+  assert.isFalse(result.valid);
+  assert.includes(result.error, 'ZIP');  // ZIP path was taken, not JSON path
+});
+
+test('content-type octet-stream routes to ZIP loader even without .zip extension', async () => {
+  window.fetch = makeFetchMock({ body: 'not a zip', contentType: 'application/octet-stream' });
+  const result = await BankLoader.loadFromUrl('https://example.com/bank');
+  assert.isFalse(result.valid);
+  assert.includes(result.error, 'ZIP');
+});
+
+
+/* ================================================================
+   SUITE 5 — BankLoader: loadFromUrl — responses
+   ================================================================ */
+suite('BankLoader — loadFromUrl: responses');
+
+test('valid JSON bank URL returns valid result with null imageMap', async () => {
+  window.fetch = makeFetchMock({ body: VALID_BANK });
+  const result = await BankLoader.loadFromUrl('https://example.com/bank.json');
+  assert.isTrue(result.valid);
+  assert.equal(result.bank.meta.pool_id, 'test-v1');
+  assert.isNull(result.imageMap);
+});
+
+test('HTTP 404 response returns fail with status in message', async () => {
+  window.fetch = makeFetchMock({ status: 404, body: 'Not Found' });
+  const result = await BankLoader.loadFromUrl('https://example.com/missing.json');
+  assert.isFalse(result.valid);
+  assert.includes(result.error, '404');
+});
+
+test('HTTP 500 response returns fail with status in message', async () => {
+  window.fetch = makeFetchMock({ status: 500, body: 'Server Error' });
+  const result = await BankLoader.loadFromUrl('https://example.com/bank.json');
+  assert.isFalse(result.valid);
+  assert.includes(result.error, '500');
+});
+
+test('network TypeError (CORS/offline) returns helpful error message', async () => {
+  window.fetch = makeFetchMock({ throws: new TypeError('Failed to fetch') });
+  const result = await BankLoader.loadFromUrl('https://example.com/bank.json');
+  assert.isFalse(result.valid);
+  assert.includes(result.error, 'CORS');
+});
+
+test('invalid JSON in response body returns parse error', async () => {
+  window.fetch = makeFetchMock({ body: 'THIS IS NOT JSON }{', contentType: 'application/json' });
+  const result = await BankLoader.loadFromUrl('https://example.com/bank.json');
+  assert.isFalse(result.valid);
+  assert.includes(result.error, 'JSON');
+});
+
+test('valid JSON that fails schema validation returns validation error', async () => {
+  const badBank = { meta: { title: 'X', pool_id: 'x', version: '1' }, questions: [] };
+  window.fetch = makeFetchMock({ body: badBank });
+  const result = await BankLoader.loadFromUrl('https://example.com/bank.json');
+  assert.isFalse(result.valid);
+  assert.includes(result.error, 'question');
+});
+
+
+/* ================================================================
+   RUNNER
+   ================================================================ */
+document.addEventListener('DOMContentLoaded', async () => {
+  // Registration phase is synchronous (all test() calls above already ran).
+  // Execution phase: await each test in order.
+  for (const t of _queue) await t();
+
+  // Unconditionally restore any localStorage keys touched by these tests.
+  restoreStorage();
+
+  // Restore fetch to a no-op so stray references don't cause confusion.
+  window.fetch = undefined;
+
+  render();
+});
+</script>
+</body>
+</html>
