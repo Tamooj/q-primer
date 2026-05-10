@@ -233,6 +233,25 @@
     #bank-status.is-success { color: var(--correct); }
     #bank-status.is-error   { color: var(--incorrect); }
 
+    /* URL bank loader row */
+    .bank-url-row {
+      display: flex;
+      gap: 0.45rem;
+      margin-top: 0.5rem;
+    }
+    .bank-url-row .text-input { flex: 1; min-width: 0; }
+
+    /* Remember-key label */
+    .remember-key-label {
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+      cursor: pointer;
+      font-size: 0.72rem;
+      color: var(--text-secondary);
+    }
+    .remember-key-label input[type="checkbox"] { cursor: pointer; }
+
     #start-hint {
       text-align: center;
       margin-top: 0.45rem;
@@ -568,6 +587,13 @@
           </div>
         </div>
         <div id="bank-status" role="status" aria-live="polite"></div>
+        <div class="bank-url-row">
+          <input type="url" id="bank-url-input" class="text-input"
+                 placeholder="Or paste a URL (.json or .zip)"
+                 autocomplete="off" spellcheck="false">
+          <button id="bank-url-btn" class="btn btn-ghost"
+                  style="white-space:nowrap; flex-shrink:0;">Load URL</button>
+        </div>
       </div>
 
       <hr class="setup-divider">
@@ -580,6 +606,12 @@
         <div class="field-hint">
           Required for AI coaching. Cleared when you close this tab.
           <a href="https://console.anthropic.com" target="_blank" rel="noopener">Get a key ↗</a>
+        </div>
+        <div class="field-hint" style="margin-top:0.45rem;">
+          <label class="remember-key-label">
+            <input type="checkbox" id="remember-key-check">
+            Remember key on this device (stored in browser only)
+          </label>
         </div>
       </div>
 
@@ -923,7 +955,78 @@
         return { valid: true, bank: result.bank, imageMap };
       }
 
-      return { validate, load, loadZip };
+      /**
+       * Normalise a Google Drive share URL to a direct download URL.
+       * Other URLs are returned unchanged.
+       *   https://drive.google.com/file/d/FILE_ID/view?...
+       *   → https://drive.google.com/uc?export=download&id=FILE_ID
+       */
+      function normalizeGoogleDriveUrl(url) {
+        const m = url.match(/drive\.google\.com\/file\/d\/([^/?#]+)/);
+        return m
+          ? `https://drive.google.com/uc?export=download&id=${m[1]}`
+          : url;
+      }
+
+      /**
+       * Fetch a bank from a URL (.json or .zip).
+       * Handles Google Drive share links automatically.
+       * @param  {string} rawUrl
+       * @returns {Promise<{ valid: true, bank: object, imageMap: Map|null } | { valid: false, error: string }>}
+       */
+      async function loadFromUrl(rawUrl) {
+        const url = normalizeGoogleDriveUrl(rawUrl.trim());
+
+        let response;
+        try {
+          response = await fetch(url);
+        } catch (err) {
+          // fetch() throws TypeError on CORS block or network failure
+          return fail(
+            'Could not fetch URL. This may be a network or CORS error. ' +
+            'Host the file on GitHub Pages or another CORS-enabled server, ' +
+            'then paste the direct link here.'
+          );
+        }
+
+        if (!response.ok) {
+          return fail(`HTTP ${response.status} — could not load bank from URL.`);
+        }
+
+        // Detect format: prefer URL extension, fall back to Content-Type
+        const lower = url.split('?')[0].toLowerCase();
+        const ct    = response.headers.get('content-type') || '';
+        const isZip = lower.endsWith('.zip') ||
+                      ct.includes('zip') ||
+                      ct.includes('octet-stream');
+
+        if (isZip) {
+          try {
+            const blob = await response.blob();
+            const file = new File([blob], 'bank.zip', { type: 'application/zip' });
+            return loadZip(file);
+          } catch (err) {
+            return fail(`Could not read ZIP from URL: ${err.message}`);
+          }
+        } else {
+          let text;
+          try {
+            text = await response.text();
+          } catch (err) {
+            return fail(`Could not read response: ${err.message}`);
+          }
+          let parsed;
+          try {
+            parsed = JSON.parse(text);
+          } catch (err) {
+            return fail(`Invalid JSON at URL: ${err.message}`);
+          }
+          const result = validate(parsed);
+          return result.valid ? { ...result, imageMap: null } : result;
+        }
+      }
+
+      return { validate, load, loadZip, loadFromUrl };
     })();
 
 
@@ -934,7 +1037,8 @@
        All other state lives in localStorage.
        ============================================================ */
     const Storage = (() => {
-      const K_APIKEY  = 'q-primer:apikey';
+      const K_APIKEY        = 'q-primer:apikey';       // sessionStorage — cleared on tab close
+      const K_APIKEY_SAVED  = 'q-primer:apikey-saved'; // localStorage  — persists across sessions
       const K_STUDENT = 'q-primer:student';
       const K_SESSION = 'q-primer:session';
 
@@ -944,10 +1048,15 @@
       }
 
       return {
-        // ── API key (sessionStorage) ─────────────────────────────
+        // ── API key (sessionStorage — cleared on tab close) ──────
         getApiKey()    { return sessionStorage.getItem(K_APIKEY) || ''; },
         setApiKey(k)   { k ? sessionStorage.setItem(K_APIKEY, k) : sessionStorage.removeItem(K_APIKEY); },
         clearApiKey()  { sessionStorage.removeItem(K_APIKEY); },
+
+        // ── Remembered API key (localStorage — persists) ─────────
+        getRememberedKey()   { return localStorage.getItem(K_APIKEY_SAVED) || ''; },
+        setRememberedKey(k)  { k ? localStorage.setItem(K_APIKEY_SAVED, k) : localStorage.removeItem(K_APIKEY_SAVED); },
+        clearRememberedKey() { localStorage.removeItem(K_APIKEY_SAVED); },
 
         // ── Student profile (localStorage) ──────────────────────
         getStudent()   { return safeGet(localStorage, K_STUDENT); },
@@ -1557,7 +1666,10 @@ Guidelines:
         bankDropZone:    document.getElementById('bank-drop-zone'),
         bankDropInner:   document.getElementById('bank-drop-inner'),
         bankStatus:      document.getElementById('bank-status'),
+        bankUrlInput:    document.getElementById('bank-url-input'),
+        bankUrlBtn:      document.getElementById('bank-url-btn'),
         apiKeyInput:     document.getElementById('api-key-input'),
+        rememberKeyCheck:document.getElementById('remember-key-check'),
         profileInput:    document.getElementById('profile-input'),
         startBtn:        document.getElementById('start-btn'),
         startHint:       document.getElementById('start-hint'),
@@ -1676,9 +1788,46 @@ Guidelines:
         refreshStartButton();
       }
 
-      function onApiKeyInput() {
-        Storage.setApiKey(el.apiKeyInput.value.trim());
+      async function onBankUrl() {
+        const raw = el.bankUrlInput.value.trim();
+        if (!raw) return;
+
+        el.bankUrlBtn.disabled    = true;
+        el.bankStatus.className   = '';
+        el.bankStatus.textContent = 'Fetching…';
+
+        const result = await BankLoader.loadFromUrl(raw);
+
+        if (result.valid) {
+          AppState.setBank(result.bank);
+          AppState.setImageMap(result.imageMap || null);
+          showBankLoaded(result.bank);
+          el.bankUrlInput.value = ''; // clear on success
+        } else {
+          AppState.clearBank();
+          AppState.clearImageMap();
+          showBankError(result.error);
+        }
+
+        el.bankUrlBtn.disabled = false;
         refreshStartButton();
+      }
+
+      function onApiKeyInput() {
+        const val = el.apiKeyInput.value.trim();
+        Storage.setApiKey(val);
+        if (el.rememberKeyCheck.checked) {
+          Storage.setRememberedKey(val);
+        }
+        refreshStartButton();
+      }
+
+      function onRememberKeyChange() {
+        if (el.rememberKeyCheck.checked) {
+          Storage.setRememberedKey(el.apiKeyInput.value.trim());
+        } else {
+          Storage.clearRememberedKey();
+        }
       }
 
       function onProfileInput() {
@@ -1719,12 +1868,22 @@ Guidelines:
         AppState.clearImageMap();   // revokes blob URLs
         // Session progress is preserved in localStorage for resume.
         // clearSession() is NOT called here — use "Start Fresh" to wipe explicitly.
-        Storage.clearApiKey();
 
         el.studyView.hidden  = true;
         el.setupPanel.hidden = false;
 
-        el.apiKeyInput.value = '';
+        // Restore remembered key (if any); otherwise clear the field.
+        const remembered = Storage.getRememberedKey();
+        if (remembered) {
+          el.apiKeyInput.value      = remembered;
+          el.rememberKeyCheck.checked = true;
+          Storage.setApiKey(remembered);
+        } else {
+          Storage.clearApiKey();
+          el.apiKeyInput.value        = '';
+          el.rememberKeyCheck.checked = false;
+        }
+
         resetBankZone();
         refreshStartButton();
 
@@ -2052,13 +2211,26 @@ Guidelines:
         if (saved && saved.profile) {
           el.profileInput.value = saved.profile;
         }
-        // Restore API key from sessionStorage into field
-        const key = Storage.getApiKey();
-        if (key) el.apiKeyInput.value = key;
+
+        // Restore API key: prefer localStorage remembered key, fall back to sessionStorage
+        const rememberedKey = Storage.getRememberedKey();
+        if (rememberedKey) {
+          el.apiKeyInput.value        = rememberedKey;
+          el.rememberKeyCheck.checked = true;
+          Storage.setApiKey(rememberedKey); // populate sessionStorage for this tab
+        } else {
+          const sessionKey = Storage.getApiKey();
+          if (sessionKey) el.apiKeyInput.value = sessionKey;
+        }
 
         // Wire events
         el.bankFileInput.addEventListener('change', (e) => onBankFile(e.target.files[0]));
+        el.bankUrlBtn.addEventListener('click', onBankUrl);
+        el.bankUrlInput.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') { e.preventDefault(); onBankUrl(); }
+        });
         el.apiKeyInput.addEventListener('input', onApiKeyInput);
+        el.rememberKeyCheck.addEventListener('change', onRememberKeyChange);
         el.profileInput.addEventListener('input', onProfileInput);
         el.startBtn.addEventListener('click', onStartStudying);
         el.endSessionBtn.addEventListener('click', transitionToSetup);

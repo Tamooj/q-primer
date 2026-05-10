@@ -276,7 +276,7 @@ q-primer.html           — complete application, single file
 
 For the repo:
 ```
-/app/q-primer.html      — application
+/index.html             — application
 /banks/                   — published question banks
 /spec/                    — this document and schema spec
 /etl/                     — (future) conversion tools

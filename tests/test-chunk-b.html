@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Q-Primer — Chunk B Tests</title>
+  <title>Q-Primer â€” Chunk B Tests</title>
   <style>
     :root {
       --pass: #22c55e; --fail: #ef4444;
@@ -31,12 +31,12 @@
 </head>
 <body>
 
-<h1>Q-PRIMER — CHUNK B TEST SUITE</h1>
-<div class="subtitle">SessionState · QuizEngine (shuffle, selection, completion, stats)</div>
+<h1>Q-PRIMER â€” CHUNK B TEST SUITE</h1>
+<div class="subtitle">SessionState Â· QuizEngine (shuffle, selection, completion, stats)</div>
 
 <div id="summary">
-  <span class="summary-pass" id="pass-count">…</span>
-  <span class="summary-fail" id="fail-count">…</span>
+  <span class="summary-pass" id="pass-count">â€¦</span>
+  <span class="summary-fail" id="fail-count">â€¦</span>
   <span class="summary-total" id="total-count"></span>
 </div>
 
@@ -46,7 +46,7 @@
 'use strict';
 
 /* ----------------------------------------------------------------
-   Minimal Storage stub — uses an in-memory object so tests don't
+   Minimal Storage stub â€” uses an in-memory object so tests don't
    touch the real localStorage / sessionStorage.
    ---------------------------------------------------------------- */
 const _store = {};
@@ -62,7 +62,7 @@ const Storage = {
 };
 
 /* ----------------------------------------------------------------
-   SessionState — exact copy from app/q-primer.html
+   SessionState â€” exact copy from index.html
    ---------------------------------------------------------------- */
 const SessionState = (() => {
   let _state = null;
@@ -148,7 +148,7 @@ const SessionState = (() => {
 })();
 
 /* ----------------------------------------------------------------
-   QuizEngine — exact copy from app/q-primer.html, with UI calls
+   QuizEngine â€” exact copy from index.html, with UI calls
    replaced by captures for test inspection.
    ---------------------------------------------------------------- */
 const _uiCalls = { rendered: [], completions: [] };
@@ -286,9 +286,9 @@ const assert = {
 
 
 /* ================================================================
-   SUITE 1: SessionState — new session
+   SUITE 1: SessionState â€” new session
    ================================================================ */
-suite('SessionState — new session');
+suite('SessionState â€” new session');
 
 test('init creates a session object', () => {
   resetStore();
@@ -344,9 +344,9 @@ test('session id is a UUID-shaped string', () => {
 
 
 /* ================================================================
-   SUITE 2: SessionState — restore
+   SUITE 2: SessionState â€” restore
    ================================================================ */
-suite('SessionState — session restore');
+suite('SessionState â€” session restore');
 
 test('init restores session when bank_id matches', () => {
   resetStore();
@@ -390,9 +390,9 @@ test('restored session preserves progress', () => {
 
 
 /* ================================================================
-   SUITE 3: SessionState — mutations
+   SUITE 3: SessionState â€” mutations
    ================================================================ */
-suite('SessionState — recordAnswer and recordSkip');
+suite('SessionState â€” recordAnswer and recordSkip');
 
 test('correct answer populates answered and correct', () => {
   resetStore();
@@ -414,7 +414,7 @@ test('wrong answer populates answered and wrong', () => {
   assert.notIncludes(p.correct, 'Q1');
 });
 
-test('recordAnswer is idempotent — second call is ignored', () => {
+test('recordAnswer is idempotent â€” second call is ignored', () => {
   resetStore();
   SessionState.init('p');
   SessionState.recordAnswer('Q1', 'A', true);
@@ -454,9 +454,9 @@ test('setQuestionOrder stores the array', () => {
 
 
 /* ================================================================
-   SUITE 4: SessionState — token usage
+   SUITE 4: SessionState â€” token usage
    ================================================================ */
-suite('SessionState — token usage');
+suite('SessionState â€” token usage');
 
 test('updateTokenUsage accumulates correctly', () => {
   resetStore();
@@ -471,9 +471,9 @@ test('updateTokenUsage accumulates correctly', () => {
 
 
 /* ================================================================
-   SUITE 5: QuizEngine — shuffle
+   SUITE 5: QuizEngine â€” shuffle
    ================================================================ */
-suite('QuizEngine — Fisher-Yates shuffle');
+suite('QuizEngine â€” Fisher-Yates shuffle');
 
 test('shuffle returns all IDs with no duplicates', () => {
   resetStore();
@@ -515,9 +515,9 @@ test('shuffle of 1 question is the same question', () => {
 
 
 /* ================================================================
-   SUITE 6: QuizEngine — question selection and completion
+   SUITE 6: QuizEngine â€” question selection and completion
    ================================================================ */
-suite('QuizEngine — question selection');
+suite('QuizEngine â€” question selection');
 
 test('getNextQuestion returns a question object', () => {
   resetStore();
@@ -577,9 +577,9 @@ test('isComplete counts skipped questions as answered', () => {
 
 
 /* ================================================================
-   SUITE 7: QuizEngine — stats and scoring
+   SUITE 7: QuizEngine â€” stats and scoring
    ================================================================ */
-suite('QuizEngine — stats');
+suite('QuizEngine â€” stats');
 
 test('getStats initial state', () => {
   resetStore();
@@ -713,7 +713,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('pass-count').textContent  = `${_passed} passed`;
   document.getElementById('fail-count').textContent  = `${_failed} failed`;
   document.getElementById('total-count').textContent = `${total} total`;
-  document.title = `${_failed > 0 ? '✗' : '✓'} Chunk B Tests (${_passed}/${total})`;
+  document.title = `${_failed > 0 ? 'âœ—' : 'âœ“'} Chunk B Tests (${_passed}/${total})`;
 });
 </script>
 </body>

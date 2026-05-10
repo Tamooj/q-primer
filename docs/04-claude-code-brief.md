@@ -16,7 +16,7 @@ Read these specs in full before writing any code:
 
 ## Deliverables
 
-1. `app/q-primer.html` — complete working application
+1. `index.html` — complete working application
 2. `banks/ham-general-2023-2027-v1.1.json` — ham radio general class question bank, converted from source markdown
 3. `README.md` — user setup guide
 4. `spec/bank-template.json` — minimal example bank for contributors

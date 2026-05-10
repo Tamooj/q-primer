@@ -20,7 +20,7 @@ Or use the GitHub **Code → Download ZIP** button and extract it anywhere on yo
 
 **2. Open the app**
 
-Open `app/q-primer.html` directly in any modern browser (Chrome, Firefox, Edge, or Safari). You can do this by double-clicking the file in your file manager, or by dragging it into a browser window. No local web server is needed.
+Open `index.html` directly in any modern browser (Chrome, Firefox, Edge, or Safari). You can do this by double-clicking the file in your file manager, or by dragging it into a browser window. No local web server is needed.
 
 **3. Load a question bank**
 
@@ -58,7 +58,7 @@ The coach calibrates its explanations to a **student profile**: a short free-tex
 
 **Q-Primer is working and available for testing.** The core application is built and functional: question banks load, the quiz loop runs, session progress persists across page reloads, and the AI coach is live. We are actively seeking educator feedback to shape ongoing development.
 
-To try it: open [`app/q-primer.html`](app/q-primer.html) in any modern browser, load a question bank from [`/banks`](banks/), and start studying. An API key is optional — the quiz works without one; coaching requires it.
+To try it: open [`index.html`](index.html) in any modern browser, load a question bank from [`/banks`](banks/), and start studying. An API key is optional — the quiz works without one; coaching requires it.
 
 The specification documents in [`/docs`](docs/) describe the intended behavior in detail, including explicit questions for educator review. The most relevant document for non-technical reviewers is:
 

@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Q-Primer — Chunk A Tests</title>
+  <title>Q-Primer â€” Chunk A Tests</title>
   <style>
     :root {
       --pass: #22c55e; --fail: #ef4444; --skip: #8b90a7;
@@ -62,12 +62,12 @@
 </head>
 <body>
 
-<h1>Q-PRIMER — CHUNK A TEST SUITE</h1>
-<div class="subtitle">BankLoader · Storage keys · AppState interface</div>
+<h1>Q-PRIMER â€” CHUNK A TEST SUITE</h1>
+<div class="subtitle">BankLoader Â· Storage keys Â· AppState interface</div>
 
 <div id="summary">
-  <span class="summary-pass" id="pass-count">… passed</span>
-  <span class="summary-fail" id="fail-count">… failed</span>
+  <span class="summary-pass" id="pass-count">â€¦ passed</span>
+  <span class="summary-fail" id="fail-count">â€¦ failed</span>
   <span class="summary-total" id="total-count"></span>
 </div>
 
@@ -77,7 +77,7 @@
 'use strict';
 
 /* ----------------------------------------------------------------
-   Copy of BankLoader (identical to app/q-primer.html).
+   Copy of BankLoader (identical to index.html).
    Tests run against this copy so this file is fully self-contained.
    ---------------------------------------------------------------- */
 const BankLoader = (() => {
@@ -221,7 +221,7 @@ function expect(val) {
 /* ================================================================
    SUITE 1: Valid banks
    ================================================================ */
-suite('Valid banks — should pass validation');
+suite('Valid banks â€” should pass validation');
 
 test('Minimal valid bank (no structure, no annotations)', () => {
   const r = BankLoader.validate({
@@ -252,7 +252,7 @@ test('Valid bank with full meta fields', () => {
   expect(r.valid).toBeTrue();
 });
 
-test('Valid bank with structure — refs match', () => {
+test('Valid bank with structure â€” refs match', () => {
   const r = BankLoader.validate({
     meta: { title: 'T', pool_id: 'p', version: '1' },
     structure: {
@@ -311,7 +311,7 @@ test('Valid bank: questions without subelement/group fields (flat pool)', () => 
     questions: [{
       id: 'Q1', question: 'What?',
       answers: { A: '1', B: '2', C: '3', D: '4' }, correct: 'B'
-      // no subelement, no group — that's fine without structure
+      // no subelement, no group â€” that's fine without structure
     }]
   });
   expect(r.valid).toBeTrue();
@@ -334,7 +334,7 @@ test('Valid bank returns the bank object on success', () => {
 /* ================================================================
    SUITE 2: Meta failures
    ================================================================ */
-suite('meta validation — should fail with specific messages');
+suite('meta validation â€” should fail with specific messages');
 
 test('null input', () => {
   const r = BankLoader.validate(null);
@@ -408,7 +408,7 @@ test('meta.title is a number', () => {
 /* ================================================================
    SUITE 3: Questions array failures
    ================================================================ */
-suite('questions array — should fail with specific messages');
+suite('questions array â€” should fail with specific messages');
 
 test('missing questions array', () => {
   const r = BankLoader.validate({ meta: { title:'T', pool_id:'p', version:'1' } });
@@ -438,7 +438,7 @@ test('questions is empty array', () => {
 /* ================================================================
    SUITE 4: Per-question field failures
    ================================================================ */
-suite('per-question validation — should fail with position and field');
+suite('per-question validation â€” should fail with position and field');
 
 const baseQ = () => ({
   id: 'Q1', question: 'What?',
@@ -598,7 +598,7 @@ test('annotation.type is empty string', () => {
   expect(r.error).toContain('annotation.type');
 });
 
-test('annotation omitted entirely — treated as undefined, passes', () => {
+test('annotation omitted entirely â€” treated as undefined, passes', () => {
   const q = { id:'Q1', question:'Q?', answers:{A:'1',B:'2',C:'3',D:'4'}, correct:'A' };
   const r = BankLoader.validate(wrap(q));
   expect(r.valid).toBeTrue();
@@ -668,7 +668,7 @@ test('question references group not in structure', () => {
   expect(r.error).toContain('group');
 });
 
-test('question with subelement/group refs when NO structure — passes', () => {
+test('question with subelement/group refs when NO structure â€” passes', () => {
   // Structure refs on questions are only validated when structure is present
   const r = BankLoader.validate({
     meta: { title:'T', pool_id:'p', version:'1' },
@@ -677,7 +677,7 @@ test('question with subelement/group refs when NO structure — passes', () => {
   expect(r.valid).toBeTrue();
 });
 
-test('structure null — treated as absent, passes', () => {
+test('structure null â€” treated as absent, passes', () => {
   const r = BankLoader.validate({
     meta: { title:'T', pool_id:'p', version:'1' },
     structure: null,
@@ -691,7 +691,7 @@ test('structure null — treated as absent, passes', () => {
    SUITE 7: Storage key names
    Verify the constants are correct (no DOM needed).
    ================================================================ */
-suite('Storage — key names and API surface');
+suite('Storage â€” key names and API surface');
 
 test('sessionStorage key for API key is namespaced', () => {
   // Write and read to confirm the key
@@ -767,7 +767,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('fail-count').textContent  = `${_failed} failed`;
   document.getElementById('total-count').textContent = `${total} total`;
 
-  document.title = `${_failed > 0 ? '✗' : '✓'} Q-Primer Tests (${_passed}/${total})`;
+  document.title = `${_failed > 0 ? 'âœ—' : 'âœ“'} Q-Primer Tests (${_passed}/${total})`;
 });
 
 </script>

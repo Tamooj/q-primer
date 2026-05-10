@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Q-Primer — Chunk A ZIP Tests</title>
+  <title>Q-Primer â€” Chunk A ZIP Tests</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <style>
     :root {
@@ -33,23 +33,23 @@
 </head>
 <body>
 
-<h1>Q-PRIMER — CHUNK A ZIP TEST SUITE</h1>
-<div class="subtitle">BankLoader.loadZip · figure validation · ZIP structure checks</div>
+<h1>Q-PRIMER â€” CHUNK A ZIP TEST SUITE</h1>
+<div class="subtitle">BankLoader.loadZip Â· figure validation Â· ZIP structure checks</div>
 
 <div id="summary">
-  <span class="summary-pass" id="pass-count">…</span>
-  <span class="summary-fail" id="fail-count">…</span>
+  <span class="summary-pass" id="pass-count">â€¦</span>
+  <span class="summary-fail" id="fail-count">â€¦</span>
   <span class="summary-total" id="total-count"></span>
 </div>
 
 <div id="results"></div>
-<div id="loading">Running async tests…</div>
+<div id="loading">Running async testsâ€¦</div>
 
 <script>
 'use strict';
 
 /* ----------------------------------------------------------------
-   BankLoader — exact copy from app/q-primer.html
+   BankLoader â€” exact copy from index.html
    ---------------------------------------------------------------- */
 const BankLoader = (() => {
 
@@ -234,7 +234,7 @@ const BankLoader = (() => {
    Helpers
    ---------------------------------------------------------------- */
 
-// A minimal 1×1 transparent PNG (for creating test ZIPs with real image data)
+// A minimal 1Ã—1 transparent PNG (for creating test ZIPs with real image data)
 function makeTinyPng() {
   const b64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVQI12NgAAIABQAABjE+ibYAAAAASUVORK5CYII=';
   const bin = atob(b64);
@@ -351,7 +351,7 @@ function render() {
   document.getElementById('pass-count').textContent  = `${_passed} passed`;
   document.getElementById('fail-count').textContent  = `${_failed} failed`;
   document.getElementById('total-count').textContent = `${total} total`;
-  document.title = `${_failed > 0 ? '✗' : '✓'} Chunk A ZIP Tests (${_passed}/${total})`;
+  document.title = `${_failed > 0 ? 'âœ—' : 'âœ“'} Chunk A ZIP Tests (${_passed}/${total})`;
 }
 
 
@@ -360,8 +360,8 @@ function render() {
    ================================================================ */
 async function runTests() {
 
-  /* ── Suite 1: Basic ZIP loading ────────────────────────────── */
-  suite('BankLoader.loadZip — valid bank');
+  /* â”€â”€ Suite 1: Basic ZIP loading â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  suite('BankLoader.loadZip â€” valid bank');
 
   await test('valid zip with text-only bank returns valid:true', async () => {
     const file   = await makeValidZip(makeMinimalBank());
@@ -422,8 +422,8 @@ async function runTests() {
   });
 
 
-  /* ── Suite 2: ZIP structure errors ─────────────────────────── */
-  suite('BankLoader.loadZip — ZIP structure errors');
+  /* â”€â”€ Suite 2: ZIP structure errors â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  suite('BankLoader.loadZip â€” ZIP structure errors');
 
   await test('zip missing bank.json returns error', async () => {
     const zip  = new JSZip();
@@ -459,8 +459,8 @@ async function runTests() {
   });
 
 
-  /* ── Suite 3: Schema errors propagate through zip ─────────── */
-  suite('BankLoader.loadZip — schema errors propagate');
+  /* â”€â”€ Suite 3: Schema errors propagate through zip â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  suite('BankLoader.loadZip â€” schema errors propagate');
 
   await test('missing meta returns schema error', async () => {
     const bad = { questions: [{ id:'Q1', question:'Q?', answers:{A:'a',B:'b',C:'c',D:'d'}, correct:'A' }] };
@@ -493,8 +493,8 @@ async function runTests() {
   });
 
 
-  /* ── Suite 4: figure field validation ──────────────────────── */
-  suite('BankLoader.validate — figure field');
+  /* â”€â”€ Suite 4: figure field validation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  suite('BankLoader.validate â€” figure field');
 
   await test('question with null figure is valid', () => {
     const bank = makeMinimalBank({
