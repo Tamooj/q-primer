@@ -374,6 +374,15 @@
       border: 1px solid var(--border);
       background: var(--bg);
     }
+    .q-figure-missing {
+      font-size: 0.78rem;
+      color: var(--incorrect);
+      background: rgba(239,68,68,0.06);
+      border: 1px solid rgba(239,68,68,0.2);
+      border-radius: var(--radius);
+      padding: 0.5rem 0.75rem;
+      text-align: center;
+    }
 
     /* Question action row */
     .q-actions { display: flex; gap: 0.65rem; align-items: center; }
@@ -937,13 +946,18 @@
         const result = validate(parsed);
         if (!result.valid) return result;
 
-        // Extract referenced figure images into blob URLs
+        // Extract referenced figure images into blob URLs.
+        // Deduplicate first — multiple questions may reference the same file,
+        // and calling entry.async() repeatedly on the same ZIP entry can
+        // produce empty/corrupt blobs on some JSZip versions.
         const imageMap = new Map();
-        const figureRefs = result.bank.questions
-          .filter(q => q.figure && q.figure.file)
-          .map(q => q.figure.file);
+        const uniqueFigureFiles = [...new Set(
+          result.bank.questions
+            .filter(q => q.figure && q.figure.file)
+            .map(q => q.figure.file)
+        )];
 
-        for (const filename of figureRefs) {
+        for (const filename of uniqueFigureFiles) {
           const entry = zip.file(`figures/${filename}`);
           if (!entry) {
             return fail(`Figure file not found in ZIP: figures/${filename}`);
@@ -2009,6 +2023,15 @@ Guidelines:
             img.className = 'q-figure-img';
             figEl.appendChild(img);
             el.questionPanel.appendChild(figEl);
+          } else {
+            // Figure referenced but not in imageMap — surface this visibly
+            // rather than silently skipping (likely cause: bank not reloaded
+            // after ending a session, or ZIP extraction issue).
+            const notice = document.createElement('div');
+            notice.className   = 'q-figure-missing';
+            notice.textContent =
+              `⚠ Figure "${question.figure.file}" not loaded — reload the bank to display it.`;
+            el.questionPanel.appendChild(notice);
           }
         }
 
