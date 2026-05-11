@@ -715,7 +715,7 @@
 
       const REQUIRED_META     = ['title', 'pool_id', 'version'];
       const REQUIRED_QUESTION = ['id', 'question', 'answers', 'correct'];
-      const ANSWER_KEYS       = ['A', 'B', 'C', 'D'];
+      const ALL_ANSWER_KEYS   = ['A', 'B', 'C', 'D', 'E', 'F'];
 
       /** Convenience: return a failure result. */
       const fail = (error) => ({ valid: false, error });
@@ -725,8 +725,8 @@
        *
        * Rules enforced:
        *   1. All required fields present at every level
-       *   2. answers has exactly keys A, B, C, D (all non-empty strings)
-       *   3. correct is one of A, B, C, D
+       *   2. answers has 2–6 keys forming a contiguous sequence from A (A,B or A,B,C … A–F)
+       *   3. correct is one of the keys present in answers
        *   4. All question IDs are unique
        *   5. If structure present: subelement/group refs are defined
        *   6. No question or answer text is empty
@@ -823,23 +823,29 @@
           if (typeof q.answers !== 'object' || Array.isArray(q.answers) || q.answers === null) {
             return fail(`${at}.answers must be an object.`);
           }
-          const foundKeys = Object.keys(q.answers).sort().join(',');
-          if (foundKeys !== 'A,B,C,D') {
+          const answerKeys = Object.keys(q.answers).sort();
+          const n = answerKeys.length;
+          if (n < 2 || n > 6) {
+            return fail(`${at}.answers must have between 2 and 6 choices. Found: ${n || '(none)'}`);
+          }
+          const expectedKeys = ALL_ANSWER_KEYS.slice(0, n);
+          if (answerKeys.join(',') !== expectedKeys.join(',')) {
             return fail(
-              `${at}.answers must have exactly keys A, B, C, D. ` +
-              `Found: ${foundKeys || '(none)'}`
+              `${at}.answers keys must be a contiguous sequence starting from A ` +
+              `(e.g. A,B or A,B,C,D). Found: ${answerKeys.join(',')}`
             );
           }
-          for (const k of ANSWER_KEYS) {
+          for (const k of answerKeys) {
             if (typeof q.answers[k] !== 'string' || q.answers[k].trim() === '') {
               return fail(`${at}.answers.${k} must be a non-empty string.`);
             }
           }
 
-          // correct: must be one of A, B, C, D
-          if (!ANSWER_KEYS.includes(q.correct)) {
+          // correct: must be one of the keys actually present in answers
+          if (!answerKeys.includes(q.correct)) {
             return fail(
-              `${at}.correct must be A, B, C, or D. Got: "${q.correct}"`
+              `${at}.correct must be one of the answer keys (${answerKeys.join(', ')}). ` +
+              `Got: "${q.correct}"`
             );
           }
 
@@ -1517,7 +1523,7 @@ Guidelines:
         }
 
         lines.push('\nAnswer choices:');
-        for (const key of ['A', 'B', 'C', 'D']) {
+        for (const key of Object.keys(question.answers).sort()) {
           lines.push(`  ${key}: ${question.answers[key]}`);
         }
 
@@ -2041,7 +2047,7 @@ Guidelines:
         const buttons = {};
         let selectedChoice = null;
 
-        for (const key of ['A', 'B', 'C', 'D']) {
+        for (const key of Object.keys(question.answers).sort()) {
           const btn = document.createElement('button');
           btn.className = 'answer-btn';
           btn.dataset.key = key;

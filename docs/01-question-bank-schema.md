@@ -164,8 +164,8 @@ Each element is a question object.
 | `subelement` | string | No | Must match `structure.subelements[].id` if structure present |
 | `group` | string | No | Must match `structure.subelements[].groups[].id` if structure present |
 | `question` | string | Yes | Verbatim question text. Never modified by app. |
-| `answers` | object | Yes | Keys must be `A`, `B`, `C`, `D`. All four required. |
-| `correct` | string | Yes | Must be `A`, `B`, `C`, or `D`. |
+| `answers` | object | Yes | 2–6 keys forming a contiguous sequence from `A` (e.g. `A,B` or `A,B,C,D` or `A`–`F`). All values must be non-empty strings. |
+| `correct` | string | Yes | Must be one of the keys present in `answers`. |
 | `reference` | string | No | Rule citation, chapter reference, etc. Displayed in UI. |
 | `figure` | object\|null | No | See Figure schema below. Required for questions that reference a diagram. |
 | `annotation` | object\|null | No | See Annotation schema below. |
@@ -175,6 +175,8 @@ Each element is a question object.
 - `correct` is the **sole authoritative source** for the correct answer
 - The app must never derive or infer the correct answer from any other field
 - Answer text must be stored verbatim — no reformatting, no punctuation normalization
+- Keys must be a **contiguous sequence starting from `A`**: valid sets are `{A,B}`, `{A,B,C}`, `{A,B,C,D}`, `{A,B,C,D,E}`, `{A,B,C,D,E,F}`. Gaps are not allowed (e.g. `{A,C}` is invalid).
+- Traditional 4-choice (`A`–`D`) is the default; use fewer or more only when the source material genuinely warrants it
 
 ---
 
@@ -246,7 +248,7 @@ A valid question bank must satisfy:
 
 1. All required fields present at every level
 2. `correct` value exists as a key in `answers`
-3. `answers` contains exactly the keys `A`, `B`, `C`, `D`
+3. `answers` has 2–6 keys forming a contiguous sequence starting from `A`
 4. All `id` values unique within the bank
 5. If `structure` present: all `subelement` and `group` values on questions must reference defined IDs
 6. No question or answer text may be empty string
