@@ -702,6 +702,36 @@
     .completion-stats          { font-size: 0.78rem; color: var(--text-secondary); line-height: 1.9; }
 
     /* ============================================================
+       ORDER TOGGLE (setup screen)
+       ============================================================ */
+    .order-toggle {
+      display: flex;
+      gap: 0.5rem;
+    }
+    .order-opt {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      padding: 0.45rem 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      cursor: pointer;
+      font-size: 0.82rem;
+      color: var(--text-secondary);
+      background: var(--bg);
+      transition: border-color 0.12s, background 0.12s, color 0.12s;
+      user-select: none;
+    }
+    .order-opt input[type="radio"] { display: none; }
+    .order-opt:has(input:checked) {
+      border-color: var(--accent);
+      background: rgba(74,158,255,0.08);
+      color: var(--text-primary);
+    }
+
+    /* ============================================================
        RESPONSIVE — single column on mobile
        ============================================================ */
     @media (max-width: 768px) {
@@ -788,7 +818,22 @@
         <div class="field-hint">Saved locally in your browser between sessions.</div>
       </div>
 
-      <!-- 4. Start -->
+      <!-- 4. Question order -->
+      <div class="setup-section">
+        <label class="field-label">Question Order</label>
+        <div class="order-toggle">
+          <label class="order-opt">
+            <input type="radio" name="order" id="order-random" value="random" checked>
+            🔀 Random
+          </label>
+          <label class="order-opt">
+            <input type="radio" name="order" id="order-sequential" value="sequential">
+            1→N Sequential
+          </label>
+        </div>
+      </div>
+
+      <!-- 5. Start -->
       <div class="setup-section">
         <button id="start-btn" class="btn btn-primary" disabled>Start Studying</button>
         <div id="start-hint"></div>
@@ -867,6 +912,14 @@
        ============================================================ -->
   <script>
     'use strict';
+
+    // ── URL parameters ────────────────────────────────────────────────────
+    // ?start=N  (1-based index into bank.questions) — forces fresh start at
+    //           that question. Intended for testing / development use.
+    const _urlParams    = new URLSearchParams(window.location.search);
+    const _urlStartRaw  = _urlParams.get('start');
+    const URL_START_IDX = _urlStartRaw !== null ? Math.max(1, parseInt(_urlStartRaw, 10) || 1) : null;
+    // URL_START_IDX is null (no param), or a 1-based integer.
 
     /* ============================================================
        MODULE: BankLoader
@@ -1253,6 +1306,7 @@
       const K_STUDENT   = 'q-primer:student';
       const K_SESSION   = 'q-primer:session';
       const K_LAST_BANK = 'q-primer:last-bank';        // localStorage  — { source, url?, filename? }
+      const K_ORDER     = 'q-primer:order';            // localStorage  — 'random' | 'sequential'
 
       function safeGet(store, key) {
         try { return JSON.parse(store.getItem(key)); }
@@ -1283,6 +1337,10 @@
         getSession()   { return safeGet(localStorage, K_SESSION); },
         setSession(o)  { localStorage.setItem(K_SESSION, JSON.stringify(o)); },
         clearSession() { localStorage.removeItem(K_SESSION); },
+
+        // ── Question order preference (localStorage) ─────────────
+        getOrderPref()    { return localStorage.getItem(K_ORDER) || 'random'; },
+        setOrderPref(v)   { localStorage.setItem(K_ORDER, v); },
       };
     })();
 
@@ -1483,15 +1541,37 @@
       /**
        * Initialise or restore a session, then render the first question.
        * Called by UI.transitionToStudy().
+       *
+       * @param {object} bank
+       * @param {{ order?: 'random'|'sequential', startIndex?: number|null }} [opts]
+       *   order      — 'random' (default) or 'sequential' (bank order)
+       *   startIndex — 1-based index into bank.questions; forces a fresh start
+       *                and rotates the order so that question is first.
        */
-      function startSession(bank) {
+      function startSession(bank, opts = {}) {
+        const order      = opts.order      || 'random';
+        const startIndex = opts.startIndex || null;   // 1-based, or null
+
         _bank = bank;
+
+        // If a startIndex was given, force a fresh start so the rotation applies
+        if (startIndex !== null) SessionState.clearSession();
+
         SessionState.init(bank.meta.pool_id);
 
-        // Shuffle once; restore order on session resume
+        // Build or restore question order
         const sess = SessionState.getSession();
         if (!sess.questionOrder) {
-          SessionState.setQuestionOrder(shuffle(bank.questions.map(q => q.id)));
+          const ids = bank.questions.map(q => q.id);
+          let ordered = (order === 'sequential') ? ids : shuffle(ids);
+
+          // Rotate so the target question is first
+          if (startIndex !== null) {
+            const i = Math.min(startIndex - 1, ids.length - 1); // clamp, convert to 0-based
+            if (i > 0) ordered = [...ordered.slice(i), ...ordered.slice(0, i)];
+          }
+
+          SessionState.setQuestionOrder(ordered);
         }
 
         UI.updateSessionBar(getStats());
@@ -1909,6 +1989,8 @@ Guidelines:
         apiKeyInput:     document.getElementById('api-key-input'),
         rememberKeyCheck:document.getElementById('remember-key-check'),
         profileInput:    document.getElementById('profile-input'),
+        orderRandom:     document.getElementById('order-random'),
+        orderSequential: document.getElementById('order-sequential'),
         startBtn:        document.getElementById('start-btn'),
         startHint:       document.getElementById('start-hint'),
         startFreshWrap:  document.getElementById('start-fresh-wrap'),
@@ -2119,7 +2201,10 @@ Guidelines:
 
         // QuizEngine.startSession() wired in Chunk B
         if (typeof QuizEngine !== 'undefined') {
-          QuizEngine.startSession(bank);
+          QuizEngine.startSession(bank, {
+            order:      el.orderSequential.checked ? 'sequential' : 'random',
+            startIndex: URL_START_IDX,
+          });
         }
       }
 
@@ -2658,6 +2743,11 @@ Guidelines:
           el.profileInput.value = saved.profile;
         }
 
+        // Restore order preference
+        if (Storage.getOrderPref() === 'sequential') {
+          el.orderSequential.checked = true;
+        }
+
         // Restore API key: prefer localStorage remembered key, fall back to sessionStorage
         const rememberedKey = Storage.getRememberedKey();
         if (rememberedKey) {
@@ -2691,6 +2781,8 @@ Guidelines:
         el.apiKeyInput.addEventListener('input', onApiKeyInput);
         el.rememberKeyCheck.addEventListener('change', onRememberKeyChange);
         el.profileInput.addEventListener('input', onProfileInput);
+        el.orderRandom.addEventListener('change',     () => Storage.setOrderPref('random'));
+        el.orderSequential.addEventListener('change', () => Storage.setOrderPref('sequential'));
         el.startBtn.addEventListener('click', onStartStudying);
         el.endSessionBtn.addEventListener('click', transitionToSetup);
 
