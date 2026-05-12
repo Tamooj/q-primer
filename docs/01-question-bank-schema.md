@@ -1,5 +1,5 @@
 # Question Bank Schema Specification
-## Q-Primer — v1.1
+## Q-Primer — v1.2
 
 ---
 
@@ -15,19 +15,23 @@ Question banks are portable, versionable, and human-readable. They may be loaded
 
 Question banks come in two forms:
 
-**Plain JSON (`.json`)** — text-only banks with no figures. A single file containing the full schema.
+**Plain JSON (`.json`)** — text-only banks with no figures or preambles. A single file containing the full schema.
 
-**ZIP archive (`.zip`)** — banks whose questions reference figures (diagrams, schematics, charts). The ZIP must contain:
+**ZIP archive (`.zip`)** — banks whose questions reference figures (diagrams, schematics, charts) or preamble files. The ZIP must contain:
 ```
 bank.json          — the question bank (full schema, required)
 figures/           — directory of image files (PNG, JPG, or other browser-renderable formats)
   G7-1.png
   G3-1.jpg
   ...
+preambles/         — directory of plain-text preamble files (present only if any questions use preambles)
+  q01-trial-methods.txt
+  q06-07-dining-room.txt
+  ...
 ```
-`bank.json` references figure files by filename only (not path). The app looks for them under `figures/` inside the ZIP. Every filename referenced in a question's `figure.file` field must exist in `figures/`; the build script (`construction/build-bank.py`) enforces this.
+`bank.json` references figure files by filename only (not path). The app looks for them under `figures/` inside the ZIP. Preamble files are looked up under `preambles/`. Every filename referenced in `figure.file` or `preamble.file` must exist in the corresponding directory; the build script (`construction/build-bank.py`) enforces this.
 
-The app deduplicates figures automatically: multiple questions may reference the same file; the image is extracted from the ZIP exactly once.
+The app deduplicates figures and preambles automatically: multiple questions may reference the same file; each file is extracted from the ZIP exactly once.
 
 ---
 
@@ -35,12 +39,12 @@ The app deduplicates figures automatically: multiple questions may reference the
 
 ```
 {subject-slug}-{pool-id}-{version}.json    (plain JSON)
-{pool-id}.zip                              (ZIP with figures)
+{pool-id}.zip                              (ZIP with figures and/or preambles)
 ```
 
 Examples:
-- `ham-general-2023-2027-v1.1.json`
-- `fcc-element3-2023-2027-sample.zip`
+- `ham-general-2023-2027-v1.2.json`
+- `fcc-element3-2023-2027.zip`
 - `us-citizenship-2024-v1.0.json`
 - `ap-biology-2025-v1.0.json`
 
@@ -67,7 +71,7 @@ Descriptive information about the bank. Displayed in the app UI and injected int
   "title": "Ham Radio General Class",
   "subtitle": "FCC Element 3 Question Pool",
   "pool_id": "fcc-element3-2023-2027",
-  "version": "1.1",
+  "version": "1.2",
   "effective_from": "2023-07-01",
   "effective_to": "2027-06-30",
   "total_questions": 429,
@@ -75,7 +79,8 @@ Descriptive information about the bank. Displayed in the app UI and injected int
   "exam_question_count": 35,
   "source_url": "https://www.arrl.org/general-class-question-pool",
   "description": "Official FCC question pool for the Amateur Radio General Class license examination.",
-  "tags": ["amateur radio", "FCC", "RF", "electronics"]
+  "tags": ["amateur radio", "FCC", "RF", "electronics"],
+  "reference_sheet": null
 }
 ```
 
@@ -95,6 +100,7 @@ Descriptive information about the bank. Displayed in the app UI and injected int
 | `source_url` | string | No | Authoritative source |
 | `description` | string | No | Injected into AI coach context |
 | `tags` | string[] | No | For future filtering/search |
+| `reference_sheet` | string\|null | No | Global reference text available for the full exam session. See [`meta.reference_sheet`](#metareference_sheet-field) below. |
 
 ---
 
@@ -163,12 +169,13 @@ Each element is a question object.
 | `id` | string | Yes | Unique within bank. Stable identifier. |
 | `subelement` | string | No | Must match `structure.subelements[].id` if structure present |
 | `group` | string | No | Must match `structure.subelements[].groups[].id` if structure present |
-| `question` | string | Yes | Verbatim question text. Never modified by app. |
-| `answers` | object | Yes | 2–6 keys forming a contiguous sequence from `A` (e.g. `A,B` or `A,B,C,D` or `A`–`F`). All values must be non-empty strings. |
+| `question` | string | Yes | Verbatim question text. Never modified by app. Supports markup convention. |
+| `answers` | object | Yes | 2–6 keys forming a contiguous sequence from `A` (e.g. `A,B` or `A,B,C,D` or `A`–`F`). All values must be non-empty strings. Supports markup convention. |
 | `correct` | string | Yes | Must be one of the keys present in `answers`. |
 | `reference` | string | No | Rule citation, chapter reference, etc. Displayed in UI. |
-| `figure` | object\|null | No | See Figure schema below. Required for questions that reference a diagram. |
-| `annotation` | object\|null | No | See Annotation schema below. |
+| `figure` | object\|null | No | See [Figure schema](#figure-object) below. Required for questions that reference a diagram. |
+| `preamble` | object | No | See [Preamble schema](#preamble-object) below. Omit entirely when not needed — do not write `"preamble": null`. |
+| `annotation` | object\|null | No | See [Annotation schema](#annotation-object) below. |
 
 ### Answer Key Rules
 
@@ -180,22 +187,75 @@ Each element is a question object.
 
 ---
 
-## Markup Convention (question text, answer text, preamble files, reference_sheet)
+## Markup Convention
 
-Three constructs are supported everywhere text is displayed. All rendering is
-DOM-safe — `textContent` only, never `innerHTML`.
+The following markup constructs are supported in question text, answer text, preamble files, and `meta.reference_sheet`. All rendering is DOM-safe — `textContent` only, never `innerHTML`. Any unrecognized HTML-like tag renders as literal text.
 
-| Construct | Syntax | Renders as |
-|-----------|--------|------------|
-| Inline code | `` `identifier` `` | Monospace inline span — preferred for class/variable names |
-| Inline code (tag form) | `<code>expr</code>` | Same monospace span — still supported |
-| Block code | `<code>\n...\n</code>` | `<pre><code>` scrollable block — content has newlines |
-| Table | `<table>\n...\n</table>` | HTML table — pipe-delimited rows, first row is header |
+### Inline code — backticks (preferred)
 
-Any other HTML-like tag in these fields is rendered as literal text.
+```
+Class `Table` has a method, `getPrice`, which returns the price.
+```
 
-See `docs/07-preamble-feature.md` for full examples including mixed prose/code
-preambles and the table format for AP CS-style answer matrices.
+Backtick pairs render as a monospace inline `<code>` span. Use for identifiers, class names, variable names, and short expressions. Preferred for inline use because it is compact and readable in source — especially when a sentence references many names.
+
+### Block code — `<code>` tag
+
+Content with newlines renders as a scrollable `<pre><code>` block. Leading and trailing newlines are trimmed automatically:
+
+```
+<code>
+public double getPrice() {
+    double total = myTable.getPrice();
+    for (Chair c : myChairs) total += c.getPrice();
+    return total;
+}
+</code>
+```
+
+`<code>expr</code>` (no newlines) also renders as an inline span — this form still works but backtick is preferred for inline use.
+
+### Tables — `<table>` tag
+
+```
+<table>
+|        | Method 1 | Method 2 | Method 3 |
+|--------|----------|----------|----------|
+| (A)    | 10       | 50       | 1,000    |
+| (B)    | 55       | 500      | 2,500    |
+| (C)    | 55       | 525      | 25,000   |
+| (D)    | 60       | 1,050    | 1,050    |
+| (E)    | 60       | 1,050    | 50,000   |
+</table>
+```
+
+- First non-separator row becomes `<thead>`; remaining rows become `<tbody>`
+- Markdown-style separator rows (`|---|---|`) are silently ignored
+- Leading/trailing `|` characters are optional
+- Table cells support backtick inline code
+- Row labels like `(A)`–`(E)` in the first column are styled as muted identifiers
+
+### Mixed preamble example
+
+```
+Class `DiningRoomSet` has a constructor which is passed a `Table` object
+and an `ArrayList` of `Chair` objects. It stores these in `myTable` and
+`myChairs`.
+
+The `getPrice` method returns the sum of the table price and all chair prices:
+
+<code>
+public double getPrice() {
+    double total = myTable.getPrice();
+    for (Chair c : myChairs) total += c.getPrice();
+    return total;
+}
+</code>
+
+Questions 12–13 refer to this implementation.
+```
+
+For long code listings, use a preamble file rather than embedding in a question JSON string.
 
 ---
 
@@ -223,6 +283,76 @@ Present when a question asks the student to interpret a diagram, schematic, char
 - `alt` text is injected into the AI coach prompt when the question is presented. Write it descriptively — the coach uses it to reason about diagram-specific questions.
 - Omit the `figure` field (or set to `null`) for questions that do not reference a figure. Do not include a `figure` field with an empty `file` string.
 - Supported image formats: PNG, JPG/JPEG, GIF, SVG, WebP — any format a modern browser can render in an `<img>` tag.
+
+---
+
+## `preamble` Object
+
+Present when a question requires the student to read a block of reference material before answering — a code listing, class definition, prose description, or mixed content. A preamble may be shared across several consecutive questions by referencing the same file.
+
+This feature was designed for the AP Computer Science question pools, where questions frequently reference Java class definitions and code segments, but the mechanism is subject-agnostic.
+
+Omit this field entirely when not needed — do not write `"preamble": null`.
+
+```json
+{
+  "id": "APCS1-Q06",
+  "subelement": "...",
+  "group": "...",
+  "question": "What is the output of `getPrice()` when called on a DiningRoomSet with one table priced at 200 and two chairs priced at 50 each?",
+  "preamble": {
+    "file": "q06-07-dining-room.txt",
+    "label": "Table, Chair, and DiningRoomSet class descriptions"
+  },
+  "answers": { "A": "200", "B": "300", "C": "250", "D": "100", "E": "400" },
+  "correct": "B"
+}
+```
+
+### `preamble` Field Reference
+
+| Field | Type | Required | Notes |
+|-------|------|----------|-------|
+| `file` | string | Yes | Filename only — no path. File must exist at `preambles/{file}` inside the ZIP. |
+| `label` | string | Yes | Short description shown on the collapsible panel header. |
+
+### Notes
+
+- Preamble files are plain text (`.txt`). The full markup convention (backtick, `<code>`, `<table>`) applies.
+- Multiple questions may reference the same preamble file. The file is extracted from the ZIP exactly once.
+- The preamble is rendered as a collapsible `<details>/<summary>` block positioned above the question text, open by default. The student can collapse it to save screen space.
+- The AI coach receives the full preamble text (markup tags stripped) injected into the per-question prompt, regardless of whether the student has the panel open.
+- Banks with preambles must be delivered as ZIP archives.
+
+### Relationship to `figure` and `reference_sheet`
+
+| Field | Type | Scope | Rendered as |
+|-------|------|-------|-------------|
+| `figure` | image file in ZIP | per-question | inline image |
+| `preamble` | text file in ZIP | per-question (shareable) | collapsible panel above question |
+| `meta.reference_sheet` | inline string in JSON | global (all questions) | modal opened by session-bar button |
+
+These are independent fields. A question may have a figure, a preamble, both, or neither.
+
+---
+
+## `meta.reference_sheet` Field
+
+Some exams provide a reference sheet available to the student for the entire exam — not tied to any individual question. The AP CS A Java Quick Reference is the canonical example.
+
+Stored as a string in `meta`. The full markup convention (`<code>`, backtick) applies to its content.
+
+```json
+"meta": {
+  ...
+  "reference_sheet": "class java.lang.String\n  `int length()`\n  `String substring(int from, int to)`\n  ..."
+}
+```
+
+**App behaviour:**
+- A **"Reference Sheet"** button appears in the session bar when `meta.reference_sheet` is present.
+- Clicking the button opens a full-screen modal overlay showing the content rendered with markup support. Clicking outside the panel or the ✕ button dismisses it.
+- The reference sheet text is injected (tags stripped) into the AI coach system prompt for every question.
 
 ---
 
@@ -273,6 +403,8 @@ A valid question bank must satisfy:
 6. No question or answer text may be empty string
 7. If `figure` present: both `figure.file` and `figure.alt` must be non-empty strings
 8. If any question has a `figure`, the bank must be delivered as a ZIP and `figures/{file}` must exist in the archive
+9. If `preamble` present: both `preamble.file` and `preamble.label` must be non-empty strings
+10. If any question has a `preamble`, the bank must be delivered as a ZIP and `preambles/{file}` must exist in the archive
 
 ---
 
@@ -337,13 +469,41 @@ A valid question bank must satisfy:
 }
 ```
 
+## Example: Question with Preamble (ZIP delivery required)
+
+```json
+{
+  "id": "APCS1-Q06",
+  "subelement": "APCS1",
+  "group": "APCS1-OOP",
+  "question": "What is the output of `getPrice()` when called on a `DiningRoomSet` with one table priced at 200 and two chairs priced at 50 each?",
+  "preamble": {
+    "file": "q06-07-dining-room.txt",
+    "label": "Table, Chair, and DiningRoomSet class descriptions"
+  },
+  "answers": {
+    "A": "200",
+    "B": "300",
+    "C": "250",
+    "D": "100",
+    "E": "400"
+  },
+  "correct": "B",
+  "reference": null,
+  "annotation": null
+}
+```
+
 The corresponding ZIP structure:
 ```
 bank.json
 figures/
   G7-1.png
+preambles/
+  q06-07-dining-room.txt
+  q12-13-insert-sort.txt
 ```
 
 ---
 
-*Next: `02-app-architecture.md`*
+*Schema version: 1.2 — adds `preamble` field, `meta.reference_sheet`, variable answer count (2–6), and full markup convention (backtick inline code, `<code>` block, `<table>` tag).*

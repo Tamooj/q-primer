@@ -100,9 +100,9 @@ What types of questions or concepts are poorly served by text-based AI explanati
 
 ## Question Banks
 
-Q-Primer ships with question banks for standardized exams. The initial bank targets the **FCC Amateur Radio General Class license exam** (2023–2027 question pool). A 31-question development sample is in [`/banks`](banks/) for testing; the full 429-question pool is in conversion.
+Q-Primer ships with question banks for standardized exams. The initial bank targets the **FCC Amateur Radio General Class license exam** (2023–2027 question pool, 429 questions) in [`/banks`](banks/).
 
-Banks are either plain JSON files (text-only questions) or ZIP archives (questions with supporting figures such as schematics and diagrams). The format is documented in [`docs/01-question-bank-schema.md`](docs/01-question-bank-schema.md). Anyone can contribute a bank by following that guide; the `construction/` directory contains a build script and example staging directories.
+Banks are either plain JSON files (text-only questions) or ZIP archives (questions with supporting figures, diagrams, or preamble reference materials). The format is documented in [`docs/01-question-bank-schema.md`](docs/01-question-bank-schema.md). Anyone can contribute a bank by following that guide; the `construction/` directory contains a build script and example staging directories.
 
 ---
 
