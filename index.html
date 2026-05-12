@@ -1555,7 +1555,7 @@
         _bank = bank;
 
         // If a startIndex was given, force a fresh start so the rotation applies
-        if (startIndex !== null) SessionState.clearSession();
+        if (startIndex !== null) Storage.clearSession();
 
         SessionState.init(bank.meta.pool_id);
 
