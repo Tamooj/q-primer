@@ -2399,7 +2399,7 @@ Guidelines:
         // Question text
         const qText = document.createElement('div');
         qText.className = 'q-text';
-        renderTagged(question.question, qText);
+        renderTagged(question.question, qText, { paragraphs: true });
         el.questionPanel.appendChild(qText);
 
         // Figure (if present — rendered between question text and answers)
