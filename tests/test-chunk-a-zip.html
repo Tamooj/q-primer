@@ -175,6 +175,18 @@ const BankLoader = (() => {
         }
       }
 
+      if (q.preamble !== null && q.preamble !== undefined) {
+        if (typeof q.preamble !== 'object' || Array.isArray(q.preamble)) {
+          return fail(`${at}.preamble must be an object or omitted.`);
+        }
+        if (typeof q.preamble.file !== 'string' || q.preamble.file.trim() === '') {
+          return fail(`${at}.preamble.file must be a non-empty string.`);
+        }
+        if (typeof q.preamble.label !== 'string' || q.preamble.label.trim() === '') {
+          return fail(`${at}.preamble.label must be a non-empty string.`);
+        }
+      }
+
       if (hasStructure) {
         if (q.subelement && !validSubelements.has(q.subelement)) {
           return fail(`${at}.subelement "${q.subelement}" is not defined in structure.subelements.`);
@@ -236,7 +248,20 @@ const BankLoader = (() => {
       imageMap.set(filename, URL.createObjectURL(blob));
     }
 
-    return { valid: true, bank: result.bank, imageMap };
+    const preambleMap = new Map();
+    const uniquePreambleFiles = [...new Set(
+      result.bank.questions
+        .filter(q => q.preamble && q.preamble.file)
+        .map(q => q.preamble.file)
+    )];
+    for (const filename of uniquePreambleFiles) {
+      const entry = zip.file(`preambles/${filename}`);
+      if (!entry) return fail(`Preamble file not found in ZIP: preambles/${filename}`);
+      const text = await entry.async('text');
+      preambleMap.set(filename, text);
+    }
+
+    return { valid: true, bank: result.bank, imageMap, preambleMap };
   }
 
   return { validate, load, loadZip };
@@ -289,12 +314,15 @@ async function zipToFile(zip, filename = 'bank.zip') {
   return new File([blob], filename, { type: 'application/zip' });
 }
 
-/** Create a valid zip with bank.json and optional figures. */
-async function makeValidZip(bankObj, figures = {}) {
+/** Create a valid zip with bank.json, optional figures, and optional preambles. */
+async function makeValidZip(bankObj, figures = {}, preambles = {}) {
   const zip = new JSZip();
   zip.file('bank.json', JSON.stringify(bankObj));
   for (const [name, data] of Object.entries(figures)) {
     zip.folder('figures').file(name, data);
+  }
+  for (const [name, text] of Object.entries(preambles)) {
+    zip.folder('preambles').file(name, text);
   }
   return zipToFile(zip);
 }
@@ -779,6 +807,136 @@ async function runTests() {
   await test('standard 4-choice bank still passes', () => {
     const bank = makeMinimalBank();   // uses A,B,C,D by default
     assert.true(BankLoader.validate(bank).valid);
+  });
+
+
+  /* ── Suite 7: Preamble validation ──────────────────────────────────── */
+  suite('BankLoader.validate — preamble field');
+
+  await test('question with valid preamble object passes validation', () => {
+    const bank = makeMinimalBank({
+      questions: [{
+        id:'Q001', question:'Q?',
+        preamble: { file: 'ref.txt', label: 'Reference material' },
+        answers:{A:'a',B:'b',C:'c',D:'d'}, correct:'A', annotation:null,
+      }],
+    });
+    assert.true(BankLoader.validate(bank).valid);
+  });
+
+  await test('question with no preamble field passes validation', () => {
+    assert.true(BankLoader.validate(makeMinimalBank()).valid);
+  });
+
+  await test('preamble missing file fails validation', () => {
+    const bank = makeMinimalBank({
+      questions: [{
+        id:'Q001', question:'Q?',
+        preamble: { label: 'No file here' },
+        answers:{A:'a',B:'b',C:'c',D:'d'}, correct:'A', annotation:null,
+      }],
+    });
+    const r = BankLoader.validate(bank);
+    assert.false(r.valid);
+    assert.includes(r.error, 'preamble.file');
+  });
+
+  await test('preamble missing label fails validation', () => {
+    const bank = makeMinimalBank({
+      questions: [{
+        id:'Q001', question:'Q?',
+        preamble: { file: 'ref.txt' },
+        answers:{A:'a',B:'b',C:'c',D:'d'}, correct:'A', annotation:null,
+      }],
+    });
+    const r = BankLoader.validate(bank);
+    assert.false(r.valid);
+    assert.includes(r.error, 'preamble.label');
+  });
+
+  await test('preamble as array fails validation', () => {
+    const bank = makeMinimalBank({
+      questions: [{
+        id:'Q001', question:'Q?',
+        preamble: ['ref.txt'],
+        answers:{A:'a',B:'b',C:'c',D:'d'}, correct:'A', annotation:null,
+      }],
+    });
+    const r = BankLoader.validate(bank);
+    assert.false(r.valid);
+    assert.includes(r.error, 'preamble');
+  });
+
+
+  /* ── Suite 8: Preamble ZIP extraction ──────────────────────────────── */
+  suite('BankLoader.loadZip — preamble extraction');
+
+  await test('preamble text is loaded into preambleMap', async () => {
+    const bank = makeMinimalBank({
+      questions: [{
+        id:'Q001', question:'Q?',
+        preamble: { file: 'ctx.txt', label: 'Context' },
+        answers:{A:'a',B:'b',C:'c',D:'d'}, correct:'A', annotation:null,
+      }],
+    });
+    const file = await makeValidZip(bank, {}, { 'ctx.txt': 'Some reference text here.' });
+    const result = await BankLoader.loadZip(file);
+    assert.true(result.valid);
+    assert.true(result.preambleMap instanceof Map);
+    assert.eq(result.preambleMap.get('ctx.txt'), 'Some reference text here.');
+  });
+
+  await test('text-only bank returns empty preambleMap', async () => {
+    const file = await makeValidZip(makeMinimalBank());
+    const result = await BankLoader.loadZip(file);
+    assert.true(result.valid);
+    assert.eq(result.preambleMap.size, 0);
+  });
+
+  await test('two questions sharing one preamble → preambleMap has 1 entry', async () => {
+    const bank = makeMinimalBank({
+      questions: [
+        { id:'Q001', question:'Q?', preamble:{ file:'shared.txt', label:'Shared' },
+          answers:{A:'a',B:'b',C:'c',D:'d'}, correct:'A', annotation:null },
+        { id:'Q002', question:'Q?', preamble:{ file:'shared.txt', label:'Shared' },
+          answers:{A:'a',B:'b',C:'c',D:'d'}, correct:'B', annotation:null },
+      ],
+    });
+    const file = await makeValidZip(bank, {}, { 'shared.txt': 'Shared context.' });
+    const result = await BankLoader.loadZip(file);
+    assert.true(result.valid);
+    assert.eq(result.preambleMap.size, 1);
+    assert.eq(result.preambleMap.get('shared.txt'), 'Shared context.');
+  });
+
+  await test('preamble file missing from ZIP returns error', async () => {
+    const bank = makeMinimalBank({
+      questions: [{
+        id:'Q001', question:'Q?',
+        preamble: { file: 'missing.txt', label: 'Missing' },
+        answers:{A:'a',B:'b',C:'c',D:'d'}, correct:'A', annotation:null,
+      }],
+    });
+    const file = await makeValidZip(bank, {}, {}); // no preambles added
+    const result = await BankLoader.loadZip(file);
+    assert.false(result.valid);
+    assert.includes(result.error, 'missing.txt');
+    assert.includes(result.error, 'preambles/');
+  });
+
+  await test('preamble preserves <code> tags in stored text', async () => {
+    const content = 'Prose before.\n<code>\npublic int foo() { return 1; }\n</code>\nProse after.';
+    const bank = makeMinimalBank({
+      questions: [{
+        id:'Q001', question:'Q?',
+        preamble: { file: 'code.txt', label: 'Code ref' },
+        answers:{A:'a',B:'b',C:'c',D:'d'}, correct:'A', annotation:null,
+      }],
+    });
+    const file = await makeValidZip(bank, {}, { 'code.txt': content });
+    const result = await BankLoader.loadZip(file);
+    assert.true(result.valid);
+    assert.eq(result.preambleMap.get('code.txt'), content);
   });
 }
 

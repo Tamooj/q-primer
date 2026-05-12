@@ -183,6 +183,14 @@ const BankLoader = (() => {
         if (typeof q.figure.alt !== 'string' || q.figure.alt.trim() === '')
           return fail(`${at}.figure.alt must be a non-empty string (used for accessibility and AI context).`);
       }
+      if (q.preamble !== null && q.preamble !== undefined) {
+        if (typeof q.preamble !== 'object' || Array.isArray(q.preamble))
+          return fail(`${at}.preamble must be an object or omitted.`);
+        if (typeof q.preamble.file !== 'string' || q.preamble.file.trim() === '')
+          return fail(`${at}.preamble.file must be a non-empty string.`);
+        if (typeof q.preamble.label !== 'string' || q.preamble.label.trim() === '')
+          return fail(`${at}.preamble.label must be a non-empty string.`);
+      }
       if (hasStructure) {
         if (q.subelement && !validSubelements.has(q.subelement))
           return fail(`${at}.subelement "${q.subelement}" is not defined in structure.subelements.`);

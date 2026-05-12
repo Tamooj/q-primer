@@ -384,6 +384,120 @@
       text-align: center;
     }
 
+    /* Inline code spans (inside question text, answer text, preamble prose) */
+    code.inline-code {
+      font-family: var(--font-mono);
+      font-size: 0.875em;
+      background: rgba(74,158,255,0.12);
+      color: #93c5fd;
+      padding: 1px 5px;
+      border-radius: 3px;
+    }
+
+    /* Code blocks (inside preamble and reference sheet) */
+    .q-preamble-content pre,
+    .ref-modal-body pre {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1rem;
+      overflow-x: auto;
+      margin: 0.5rem 0;
+    }
+    .q-preamble-content pre code,
+    .ref-modal-body pre code {
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+      line-height: 1.65;
+      color: var(--text-primary);
+    }
+
+    /* Preamble collapsible block */
+    .q-preamble {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .q-preamble > summary {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      padding: 0.5rem 0.875rem;
+      cursor: pointer;
+      background: rgba(255,255,255,0.03);
+      list-style: none;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      user-select: none;
+    }
+    .q-preamble > summary::before {
+      content: '▶';
+      font-size: 0.6rem;
+      transition: transform 0.15s;
+      flex-shrink: 0;
+    }
+    .q-preamble[open] > summary::before { transform: rotate(90deg); }
+    .q-preamble-content {
+      padding: 1rem 1rem 0.25rem;
+      font-size: 0.88rem;
+      line-height: 1.75;
+      color: var(--text-primary);
+    }
+    .q-preamble-content p { margin-bottom: 0.65rem; }
+    .q-preamble-content p:last-child { margin-bottom: 0.75rem; }
+
+    /* Reference sheet modal */
+    #ref-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.72);
+      z-index: 200;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 2rem 1rem;
+      overflow-y: auto;
+    }
+    #ref-modal[hidden] { display: none; }
+    .ref-modal-panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      width: 100%;
+      max-width: 860px;
+      max-height: calc(100vh - 4rem);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .ref-modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.65rem 1.25rem;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .ref-modal-title { font-weight: 600; font-size: 0.82rem; color: var(--text-primary); }
+    .ref-modal-close {
+      background: none; border: none; cursor: pointer;
+      color: var(--text-secondary); font-size: 1rem;
+      padding: 0.2rem 0.5rem; border-radius: var(--radius);
+      transition: background 0.1s, color 0.1s;
+    }
+    .ref-modal-close:hover { background: var(--border); color: var(--text-primary); }
+    .ref-modal-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1.25rem 1.5rem;
+      font-size: 0.88rem;
+      line-height: 1.75;
+      color: var(--text-primary);
+    }
+    .ref-modal-body p { margin-bottom: 0.65rem; }
+    .ref-modal-body p:last-child { margin-bottom: 0; }
+
     /* Question action row */
     .q-actions { display: flex; gap: 0.65rem; align-items: center; }
 
@@ -669,8 +783,20 @@
         </span>
       </div>
       <div class="sbar-right">
+        <button class="btn btn-ghost" id="ref-sheet-btn" hidden style="font-size:0.72rem;padding:0.3rem 0.75rem;">Reference Sheet</button>
         <span class="sbar-remaining" id="remaining-display"></span>
         <button class="btn btn-danger-ghost" id="end-session-btn">End Session</button>
+      </div>
+    </div>
+
+    <!-- Reference sheet modal (hidden until button clicked) -->
+    <div id="ref-modal" hidden role="dialog" aria-modal="true" aria-labelledby="ref-modal-title">
+      <div class="ref-modal-panel">
+        <div class="ref-modal-header">
+          <span class="ref-modal-title" id="ref-modal-title">Reference Sheet</span>
+          <button class="ref-modal-close" id="ref-modal-close" aria-label="Close">✕</button>
+        </div>
+        <div class="ref-modal-body" id="ref-modal-body"></div>
       </div>
     </div>
 
@@ -875,6 +1001,19 @@
             }
           }
 
+          // preamble: optional object with file + label
+          if (q.preamble !== null && q.preamble !== undefined) {
+            if (typeof q.preamble !== 'object' || Array.isArray(q.preamble)) {
+              return fail(`${at}.preamble must be an object or omitted.`);
+            }
+            if (typeof q.preamble.file !== 'string' || q.preamble.file.trim() === '') {
+              return fail(`${at}.preamble.file must be a non-empty string.`);
+            }
+            if (typeof q.preamble.label !== 'string' || q.preamble.label.trim() === '') {
+              return fail(`${at}.preamble.label must be a non-empty string.`);
+            }
+          }
+
           // Structure cross-references (only enforced when structure is present)
           if (hasStructure) {
             if (q.subelement && !validSubelements.has(q.subelement)) {
@@ -972,7 +1111,23 @@
           imageMap.set(filename, URL.createObjectURL(blob));
         }
 
-        return { valid: true, bank: result.bank, imageMap };
+        // Extract preamble text files
+        const preambleMap = new Map();
+        const uniquePreambleFiles = [...new Set(
+          result.bank.questions
+            .filter(q => q.preamble && q.preamble.file)
+            .map(q => q.preamble.file)
+        )];
+        for (const filename of uniquePreambleFiles) {
+          const entry = zip.file(`preambles/${filename}`);
+          if (!entry) {
+            return fail(`Preamble file not found in ZIP: preambles/${filename}`);
+          }
+          const text = await entry.async('text');
+          preambleMap.set(filename, text);
+        }
+
+        return { valid: true, bank: result.bank, imageMap, preambleMap };
       }
 
       /**
@@ -1101,9 +1256,10 @@
        Top-level in-memory state. Does not touch the DOM.
        ============================================================ */
     const AppState = (() => {
-      let _phase    = 'SETUP'; // 'SETUP' | 'STUDY'
-      let _bank     = null;
-      let _imageMap = null;   // Map<filename, blobURL> — populated from ZIP banks
+      let _phase       = 'SETUP'; // 'SETUP' | 'STUDY'
+      let _bank        = null;
+      let _imageMap    = null;   // Map<filename, blobURL> — populated from ZIP banks
+      let _preambleMap = null;   // Map<filename, text>   — populated from ZIP banks
 
       return {
         getPhase()   { return _phase; },
@@ -1123,6 +1279,10 @@
           }
           _imageMap = null;
         },
+
+        getPreambleMap()   { return _preambleMap; },
+        setPreambleMap(m)  { _preambleMap = m; },
+        clearPreambleMap() { _preambleMap = null; },
       };
     })();
 
@@ -1488,6 +1648,12 @@
           parts.push(bank.meta.description);
         }
 
+        if (bank.meta.reference_sheet && bank.meta.reference_sheet.trim()) {
+          // Strip <code> tags — the AI doesn't need markup, just the content
+          const sheetText = bank.meta.reference_sheet.replace(/<\/?code>/g, '');
+          parts.push(`Reference sheet (available to student for all questions):\n${sheetText}`);
+        }
+
         if (student && student.profile && student.profile.trim()) {
           parts.push(`Student background: ${student.profile.trim()}`);
         }
@@ -1520,6 +1686,16 @@ Guidelines:
 
         if (question.figure) {
           lines.push(`Figure: ${question.figure.alt}`);
+        }
+
+        if (question.preamble) {
+          const preambleMap = AppState.getPreambleMap();
+          const ptext = preambleMap && preambleMap.get(question.preamble.file);
+          if (ptext) {
+            // Strip <code> tags — AI reads the content directly
+            const clean = ptext.replace(/<\/?code>/g, '');
+            lines.push(`\nReference material (${question.preamble.label}):\n${clean}`);
+          }
         }
 
         lines.push('\nAnswer choices:');
@@ -1707,6 +1883,12 @@ Guidelines:
         scoreLabel:      document.getElementById('score-label'),
         remainingDisplay:document.getElementById('remaining-display'),
         endSessionBtn:   document.getElementById('end-session-btn'),
+        refSheetBtn:     document.getElementById('ref-sheet-btn'),
+
+        // Reference sheet modal
+        refModal:        document.getElementById('ref-modal'),
+        refModalBody:    document.getElementById('ref-modal-body'),
+        refModalClose:   document.getElementById('ref-modal-close'),
 
         // Panels
         questionPanel:   document.getElementById('question-panel'),
@@ -1806,11 +1988,13 @@ Guidelines:
         if (result.valid) {
           AppState.setBank(result.bank);
           AppState.setImageMap(result.imageMap || null);
+          AppState.setPreambleMap(result.preambleMap || null);
           showBankLoaded(result.bank);
           Storage.setLastBank({ source: 'file', filename: file.name });
         } else {
           AppState.clearBank();
           AppState.clearImageMap();
+          AppState.clearPreambleMap();
           showBankError(result.error);
         }
         refreshStartButton();
@@ -1829,6 +2013,7 @@ Guidelines:
         if (result.valid) {
           AppState.setBank(result.bank);
           AppState.setImageMap(result.imageMap || null);
+          AppState.setPreambleMap(result.preambleMap || null);
           showBankLoaded(result.bank);
           Storage.setLastBank({ source: 'url', url: raw });
           el.bankUrlInput.value = ''; // clear on success
@@ -1885,16 +2070,30 @@ Guidelines:
         AppState.setPhase('STUDY');
         el.setupPanel.hidden = true;
         el.studyView.hidden  = false;
+
+        // Reference sheet: populate modal and show button if bank has one
+        const bank = AppState.getBank();
+        if (bank.meta.reference_sheet) {
+          el.refModalBody.innerHTML = '';
+          renderTagged(bank.meta.reference_sheet, el.refModalBody, { paragraphs: true });
+          el.refSheetBtn.hidden = false;
+        } else {
+          el.refSheetBtn.hidden = true;
+        }
+
         // QuizEngine.startSession() wired in Chunk B
         if (typeof QuizEngine !== 'undefined') {
-          QuizEngine.startSession(AppState.getBank());
+          QuizEngine.startSession(bank);
         }
       }
 
       function transitionToSetup() {
         AppState.setPhase('SETUP');
         AppState.clearBank();
-        AppState.clearImageMap();   // revokes blob URLs
+        AppState.clearImageMap();    // revokes blob URLs
+        AppState.clearPreambleMap();
+        el.refSheetBtn.hidden = true;
+        el.refModal.hidden    = true;
         // Session progress is preserved in localStorage for resume.
         // clearSession() is NOT called here — use "Start Fresh" to wipe explicitly.
 
@@ -1988,8 +2187,60 @@ Guidelines:
       // ── Question panel rendering (Chunk B) ───────────────────────
 
       /**
+       * Parse a string containing <code>...</code> tags and append the
+       * resulting DOM nodes to `container`. Safe — no innerHTML used.
+       *
+       * - <code> content WITHOUT newlines → inline <code class="inline-code"> span
+       * - <code> content WITH newlines    → <pre><code> block (leading/trailing
+       *   newlines stripped for authoring convenience)
+       * - Text outside tags              → text node(s)
+       *
+       * When `paragraphs: true`, prose segments are split on blank lines
+       * and each paragraph is wrapped in a <p> element. Use this for
+       * preamble files and reference_sheet content.
+       *
+       * @param {string}  text
+       * @param {Element} container
+       * @param {{ paragraphs?: boolean }} [opts]
+       */
+      function renderTagged(text, container, { paragraphs = false } = {}) {
+        // Split on <code>...</code> blocks; captured group preserves content.
+        const parts = text.split(/<code>([\s\S]*?)<\/code>/);
+        parts.forEach((part, i) => {
+          if (i % 2 === 0) {
+            // Prose segment
+            if (!part) return;
+            if (paragraphs) {
+              const chunks = part.split(/\n\n+/).filter(c => c.trim());
+              chunks.forEach(chunk => {
+                const p = document.createElement('p');
+                p.textContent = chunk.trim();
+                container.appendChild(p);
+              });
+            } else {
+              container.appendChild(document.createTextNode(part));
+            }
+          } else {
+            // Code segment — inline or block depending on content
+            if (part.includes('\n')) {
+              const pre  = document.createElement('pre');
+              const code = document.createElement('code');
+              code.textContent = part.replace(/^\n/, '').replace(/\n$/, '');
+              pre.appendChild(code);
+              container.appendChild(pre);
+            } else {
+              const code = document.createElement('code');
+              code.className = 'inline-code';
+              code.textContent = part;
+              container.appendChild(code);
+            }
+          }
+        });
+      }
+
+      /**
        * Render a question into the question panel.
-       * All question/answer text set via textContent — never innerHTML.
+       * Text content rendered via renderTagged — supports <code> markup.
        */
       function renderQuestion(question) {
         el.questionPanel.innerHTML = '';
@@ -2010,10 +2261,35 @@ Guidelines:
           el.questionPanel.appendChild(meta);
         }
 
+        // Preamble (if present — rendered above question text, collapsible)
+        if (question.preamble) {
+          const preambleMap = AppState.getPreambleMap();
+          const ptext = preambleMap && preambleMap.get(question.preamble.file);
+          if (ptext !== undefined) {
+            const details  = document.createElement('details');
+            details.className = 'q-preamble';
+            details.open   = true;
+            const summary  = document.createElement('summary');
+            summary.textContent = question.preamble.label;
+            const content  = document.createElement('div');
+            content.className = 'q-preamble-content';
+            renderTagged(ptext, content, { paragraphs: true });
+            details.appendChild(summary);
+            details.appendChild(content);
+            el.questionPanel.appendChild(details);
+          } else {
+            const notice = document.createElement('div');
+            notice.className   = 'q-figure-missing';
+            notice.textContent =
+              `⚠ Preamble "${question.preamble.file}" not loaded — reload the bank to display it.`;
+            el.questionPanel.appendChild(notice);
+          }
+        }
+
         // Question text
         const qText = document.createElement('div');
         qText.className = 'q-text';
-        qText.textContent = question.question;
+        renderTagged(question.question, qText);
         el.questionPanel.appendChild(qText);
 
         // Figure (if present — rendered between question text and answers)
@@ -2057,7 +2333,7 @@ Guidelines:
           keyEl.textContent = key;
 
           const textEl = document.createElement('span');
-          textEl.textContent = question.answers[key];
+          renderTagged(question.answers[key], textEl);
 
           btn.appendChild(keyEl);
           btn.appendChild(textEl);
@@ -2307,6 +2583,13 @@ Guidelines:
         el.profileInput.addEventListener('input', onProfileInput);
         el.startBtn.addEventListener('click', onStartStudying);
         el.endSessionBtn.addEventListener('click', transitionToSetup);
+
+        // Reference sheet modal
+        el.refSheetBtn.addEventListener('click', () => { el.refModal.hidden = false; });
+        el.refModalClose.addEventListener('click', () => { el.refModal.hidden = true; });
+        el.refModal.addEventListener('click', (e) => {
+          if (e.target === el.refModal) el.refModal.hidden = true; // backdrop dismiss
+        });
         el.startFreshBtn.addEventListener('click', () => {
           Storage.clearSession();
           refreshStartButton();
