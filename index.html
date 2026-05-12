@@ -504,10 +504,10 @@
       background: rgba(255,255,255,0.04);
       font-weight: 600;
       color: var(--text-secondary);
-      text-align: center;
+      text-align: left;
     }
     .q-table td {
-      text-align: right;
+      text-align: left;
       font-variant-numeric: tabular-nums;
     }
     /* First column is typically a row label like (A), (B) */
@@ -516,7 +516,7 @@
       font-size: 0.78rem;
       font-weight: 600;
       color: var(--text-secondary);
-      text-align: center;
+      text-align: left;
     }
 
     /* Reference sheet modal */
@@ -563,11 +563,12 @@
       flex: 1;
       overflow-y: auto;
       padding: 1.25rem 1.5rem;
+      text-align: left;
       font-size: 0.88rem;
       line-height: 1.75;
       color: var(--text-primary);
     }
-    .ref-modal-body p { margin-bottom: 0.65rem; }
+    .ref-modal-body p { margin-bottom: 0.65rem; padding-left: 0.5rem; }
     .ref-modal-body p:last-child { margin-bottom: 0; }
 
     /* Question action row */
