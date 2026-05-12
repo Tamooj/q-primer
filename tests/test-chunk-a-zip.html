@@ -355,7 +355,101 @@ const assert = {
   null(v)          { if (v !== null)  throw new Error(`Expected null, got ${JSON.stringify(v)}`); },
   notNull(v)       { if (v == null)   throw new Error('Expected non-null'); },
   includes(s, sub) { if (!s.includes(sub)) throw new Error(`Expected "${s}" to include "${sub}"`); },
+  hasEl(el, sel)   { if (!el.querySelector(sel)) throw new Error(`No element matching "${sel}"`); },
+  noEl(el, sel)    { if (el.querySelector(sel))  throw new Error(`Unexpected element matching "${sel}"`); },
+  textOf(el, sel)  { const n = el.querySelector(sel); if (!n) throw new Error(`No element matching "${sel}"`); return n.textContent; },
 };
+
+/* ----------------------------------------------------------------
+   renderTagged / renderInline / buildTable
+   Exact copies of the functions from index.html (UI module).
+   ---------------------------------------------------------------- */
+function renderInline(text, container) {
+  const parts = text.split(/`([^`\n]+)`/);
+  parts.forEach((part, i) => {
+    if (i % 2 === 0) {
+      if (part) container.appendChild(document.createTextNode(part));
+    } else {
+      const code = document.createElement('code');
+      code.className = 'inline-code';
+      code.textContent = part;
+      container.appendChild(code);
+    }
+  });
+}
+
+function buildTable(content) {
+  const lines = content.trim().split('\n')
+    .map(l => l.trim())
+    .filter(l => l && !/^[\|:\-\s]+$/.test(l));
+  if (!lines.length) return null;
+  function parseCells(line) {
+    let cells = line.split('|').map(c => c.trim());
+    if (cells[0] === '') cells = cells.slice(1);
+    if (cells[cells.length - 1] === '') cells = cells.slice(0, -1);
+    return cells;
+  }
+  const table = document.createElement('table');
+  table.className = 'q-table';
+  const thead = document.createElement('thead');
+  const hrow  = document.createElement('tr');
+  parseCells(lines[0]).forEach(cell => {
+    const th = document.createElement('th');
+    renderInline(cell, th);
+    hrow.appendChild(th);
+  });
+  thead.appendChild(hrow);
+  table.appendChild(thead);
+  if (lines.length > 1) {
+    const tbody = document.createElement('tbody');
+    lines.slice(1).forEach(line => {
+      const tr = document.createElement('tr');
+      parseCells(line).forEach(cell => {
+        const td = document.createElement('td');
+        renderInline(cell, td);
+        tr.appendChild(td);
+      });
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+  }
+  return table;
+}
+
+function renderTagged(text, container, { paragraphs = false } = {}) {
+  const parts = text.split(/(<code>[\s\S]*?<\/code>|<table>[\s\S]*?<\/table>)/);
+  parts.forEach((part, i) => {
+    if (i % 2 === 0) {
+      if (!part) return;
+      if (paragraphs) {
+        part.split(/\n\n+/).filter(c => c.trim()).forEach(chunk => {
+          const p = document.createElement('p');
+          renderInline(chunk.trim(), p);
+          container.appendChild(p);
+        });
+      } else {
+        renderInline(part, container);
+      }
+    } else if (part.startsWith('<table>')) {
+      const tableEl = buildTable(part.slice(7, -8));
+      if (tableEl) container.appendChild(tableEl);
+    } else {
+      const content = part.slice(6, -7);
+      if (content.includes('\n')) {
+        const pre = document.createElement('pre');
+        const code = document.createElement('code');
+        code.textContent = content.replace(/^\n/, '').replace(/\n$/, '');
+        pre.appendChild(code);
+        container.appendChild(pre);
+      } else {
+        const code = document.createElement('code');
+        code.className = 'inline-code';
+        code.textContent = content;
+        container.appendChild(code);
+      }
+    }
+  });
+}
 
 function render() {
   document.getElementById('loading').remove();
@@ -937,6 +1031,117 @@ async function runTests() {
     const result = await BankLoader.loadZip(file);
     assert.true(result.valid);
     assert.eq(result.preambleMap.get('code.txt'), content);
+  });
+
+
+  /* ── Suite 9: renderTagged / renderInline / buildTable ──────────────── */
+  suite('renderTagged — backtick, <code>, and <table>');
+
+  function mkDiv() { return document.createElement('div'); }
+
+  await test('plain text renders as a single text node', () => {
+    const d = mkDiv();
+    renderTagged('Hello world', d);
+    assert.eq(d.textContent, 'Hello world');
+    assert.noEl(d, 'code');
+  });
+
+  await test('backtick span renders as inline-code element', () => {
+    const d = mkDiv();
+    renderTagged('Use `Book` here.', d);
+    assert.hasEl(d, 'code.inline-code');
+    assert.eq(assert.textOf(d, 'code.inline-code'), 'Book');
+  });
+
+  await test('multiple backtick spans in one sentence', () => {
+    const d = mkDiv();
+    renderTagged('`String` and `int` are types.', d);
+    assert.eq(d.querySelectorAll('code.inline-code').length, 2);
+    assert.eq(d.querySelectorAll('code.inline-code')[0].textContent, 'String');
+    assert.eq(d.querySelectorAll('code.inline-code')[1].textContent, 'int');
+  });
+
+  await test('<code>tag</code> without newlines renders as inline-code span', () => {
+    const d = mkDiv();
+    renderTagged('Call <code>getPrice()</code> now.', d);
+    assert.hasEl(d, 'code.inline-code');
+    assert.eq(assert.textOf(d, 'code.inline-code'), 'getPrice()');
+  });
+
+  await test('<code> with newlines renders as pre>code block', () => {
+    const d = mkDiv();
+    renderTagged('<code>\npublic int foo() {\n  return 1;\n}\n</code>', d);
+    assert.hasEl(d, 'pre code');
+    assert.noEl(d, 'code.inline-code');
+    assert.true(d.querySelector('pre code').textContent.includes('return 1'));
+  });
+
+  await test('pre>code block strips leading and trailing newlines', () => {
+    const d = mkDiv();
+    renderTagged('<code>\nline one\n</code>', d);
+    assert.eq(d.querySelector('pre code').textContent, 'line one');
+  });
+
+  await test('<table> tag renders a table element', () => {
+    const d = mkDiv();
+    renderTagged('<table>\n| A | B |\n| 1 | 2 |\n</table>', d);
+    assert.hasEl(d, 'table.q-table');
+    assert.hasEl(d, 'thead th');
+    assert.hasEl(d, 'tbody td');
+  });
+
+  await test('table first row becomes thead headers', () => {
+    const d = mkDiv();
+    renderTagged('<table>\n| Method 1 | Method 2 |\n| 10 | 50 |\n</table>', d);
+    const ths = d.querySelectorAll('thead th');
+    assert.eq(ths.length, 2);
+    assert.eq(ths[0].textContent, 'Method 1');
+    assert.eq(ths[1].textContent, 'Method 2');
+  });
+
+  await test('table body rows are parsed correctly', () => {
+    const d = mkDiv();
+    renderTagged('<table>\n| H |\n| (A) |\n| (B) |\n</table>', d);
+    const rows = d.querySelectorAll('tbody tr');
+    assert.eq(rows.length, 2);
+    assert.eq(rows[0].querySelector('td').textContent, '(A)');
+  });
+
+  await test('markdown separator rows (|---|) are silently skipped', () => {
+    const d = mkDiv();
+    renderTagged('<table>\n| H1 | H2 |\n|---|---|\n| v1 | v2 |\n</table>', d);
+    assert.eq(d.querySelectorAll('tbody tr').length, 1);
+    assert.eq(d.querySelectorAll('thead th').length, 2);
+  });
+
+  await test('backtick inline code inside table cells', () => {
+    const d = mkDiv();
+    renderTagged('<table>\n| Method |\n| `getPrice()` |\n</table>', d);
+    assert.hasEl(d, 'tbody td code.inline-code');
+    assert.eq(assert.textOf(d, 'tbody td code.inline-code'), 'getPrice()');
+  });
+
+  await test('paragraphs:true wraps prose in <p> elements', () => {
+    const d = mkDiv();
+    renderTagged('Para one.\n\nPara two.', d, { paragraphs: true });
+    assert.eq(d.querySelectorAll('p').length, 2);
+    assert.eq(d.querySelectorAll('p')[0].textContent, 'Para one.');
+  });
+
+  await test('paragraphs:true with backtick inline code inside a paragraph', () => {
+    const d = mkDiv();
+    renderTagged('Use `Book` class.\n\nSee `Author` too.', d, { paragraphs: true });
+    assert.eq(d.querySelectorAll('p').length, 2);
+    assert.eq(d.querySelectorAll('code.inline-code').length, 2);
+  });
+
+  await test('mixed: prose + backtick + block code + table in one string', () => {
+    const d = mkDiv();
+    const text = 'Consider `Book`:\n<code>\nclass Book {}\n</code>\n\n<table>\n| A | B |\n| 1 | 2 |\n</table>';
+    renderTagged(text, d);
+    assert.hasEl(d, 'code.inline-code');
+    assert.hasEl(d, 'pre code');
+    assert.hasEl(d, 'table.q-table');
   });
 }
 

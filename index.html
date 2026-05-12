@@ -447,6 +447,37 @@
     .q-preamble-content p { margin-bottom: 0.65rem; }
     .q-preamble-content p:last-child { margin-bottom: 0.75rem; }
 
+    /* Data tables (rendered from <table>...</table> markup) */
+    .q-table {
+      border-collapse: collapse;
+      font-size: 0.84rem;
+      margin: 0.5rem 0;
+      white-space: nowrap;
+    }
+    .q-table th,
+    .q-table td {
+      border: 1px solid var(--border);
+      padding: 0.3rem 0.875rem;
+    }
+    .q-table th {
+      background: rgba(255,255,255,0.04);
+      font-weight: 600;
+      color: var(--text-secondary);
+      text-align: center;
+    }
+    .q-table td {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+    /* First column is typically a row label like (A), (B) */
+    .q-table td:first-child {
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      text-align: center;
+    }
+
     /* Reference sheet modal */
     #ref-modal {
       position: fixed;
@@ -1649,8 +1680,8 @@
         }
 
         if (bank.meta.reference_sheet && bank.meta.reference_sheet.trim()) {
-          // Strip <code> tags — the AI doesn't need markup, just the content
-          const sheetText = bank.meta.reference_sheet.replace(/<\/?code>/g, '');
+          // Strip markup tags — AI reads raw content directly
+          const sheetText = bank.meta.reference_sheet.replace(/<\/?(code|table)>/g, '');
           parts.push(`Reference sheet (available to student for all questions):\n${sheetText}`);
         }
 
@@ -1692,8 +1723,8 @@ Guidelines:
           const preambleMap = AppState.getPreambleMap();
           const ptext = preambleMap && preambleMap.get(question.preamble.file);
           if (ptext) {
-            // Strip <code> tags — AI reads the content directly
-            const clean = ptext.replace(/<\/?code>/g, '');
+            // Strip markup tags — AI reads raw content directly
+            const clean = ptext.replace(/<\/?(code|table)>/g, '');
             lines.push(`\nReference material (${question.preamble.label}):\n${clean}`);
           }
         }
@@ -2187,51 +2218,125 @@ Guidelines:
       // ── Question panel rendering (Chunk B) ───────────────────────
 
       /**
-       * Parse a string containing <code>...</code> tags and append the
-       * resulting DOM nodes to `container`. Safe — no innerHTML used.
+       * Render prose text that may contain `backtick` inline code spans.
+       * Appends text nodes and <code class="inline-code"> elements to container.
+       * Called by renderTagged for every prose segment.
+       */
+      function renderInline(text, container) {
+        const parts = text.split(/`([^`\n]+)`/);
+        parts.forEach((part, i) => {
+          if (i % 2 === 0) {
+            if (part) container.appendChild(document.createTextNode(part));
+          } else {
+            const code = document.createElement('code');
+            code.className = 'inline-code';
+            code.textContent = part;
+            container.appendChild(code);
+          }
+        });
+      }
+
+      /**
+       * Parse pipe-delimited table content into a <table> DOM element.
+       * First non-separator row becomes <thead>; remaining rows become <tbody>.
+       * Separator lines (e.g. |---|---| from Markdown) are silently ignored.
+       * Table cells support `backtick` inline code via renderInline.
+       */
+      function buildTable(content) {
+        const lines = content.trim().split('\n')
+          .map(l => l.trim())
+          .filter(l => l && !/^[\|:\-\s]+$/.test(l)); // skip separator rows
+
+        if (!lines.length) return null;
+
+        function parseCells(line) {
+          let cells = line.split('|').map(c => c.trim());
+          if (cells[0] === '') cells = cells.slice(1);       // leading |
+          if (cells[cells.length - 1] === '') cells = cells.slice(0, -1); // trailing |
+          return cells;
+        }
+
+        const table   = document.createElement('table');
+        table.className = 'q-table';
+
+        const thead   = document.createElement('thead');
+        const hrow    = document.createElement('tr');
+        parseCells(lines[0]).forEach(cell => {
+          const th = document.createElement('th');
+          renderInline(cell, th);
+          hrow.appendChild(th);
+        });
+        thead.appendChild(hrow);
+        table.appendChild(thead);
+
+        if (lines.length > 1) {
+          const tbody = document.createElement('tbody');
+          lines.slice(1).forEach(line => {
+            const tr = document.createElement('tr');
+            parseCells(line).forEach(cell => {
+              const td = document.createElement('td');
+              renderInline(cell, td);
+              tr.appendChild(td);
+            });
+            tbody.appendChild(tr);
+          });
+          table.appendChild(tbody);
+        }
+
+        return table;
+      }
+
+      /**
+       * Parse markup in a string and append resulting DOM nodes to `container`.
+       * Safe — no innerHTML used anywhere.
        *
-       * - <code> content WITHOUT newlines → inline <code class="inline-code"> span
-       * - <code> content WITH newlines    → <pre><code> block (leading/trailing
-       *   newlines stripped for authoring convenience)
-       * - Text outside tags              → text node(s)
+       * Supported markup:
+       *   `backtick`              → inline <code> span (preferred for identifiers)
+       *   <code>text</code>       → inline <code> span (no newlines in content)
+       *   <code>\nblock\n</code>  → <pre><code> block  (content has newlines)
+       *   <table>\nrows\n</table> → <table> element (pipe-delimited rows)
        *
-       * When `paragraphs: true`, prose segments are split on blank lines
-       * and each paragraph is wrapped in a <p> element. Use this for
-       * preamble files and reference_sheet content.
+       * When `paragraphs: true`, prose segments are split on blank lines and
+       * each chunk is wrapped in a <p>. Use for preamble files and reference_sheet.
        *
        * @param {string}  text
        * @param {Element} container
        * @param {{ paragraphs?: boolean }} [opts]
        */
       function renderTagged(text, container, { paragraphs = false } = {}) {
-        // Split on <code>...</code> blocks; captured group preserves content.
-        const parts = text.split(/<code>([\s\S]*?)<\/code>/);
+        // Split on block-level tags, keeping the matched tag as a captured group.
+        const parts = text.split(/(<code>[\s\S]*?<\/code>|<table>[\s\S]*?<\/table>)/);
+
         parts.forEach((part, i) => {
           if (i % 2 === 0) {
-            // Prose segment
+            // Prose segment — apply backtick inline code, optional paragraph wrapping
             if (!part) return;
             if (paragraphs) {
-              const chunks = part.split(/\n\n+/).filter(c => c.trim());
-              chunks.forEach(chunk => {
+              part.split(/\n\n+/).filter(c => c.trim()).forEach(chunk => {
                 const p = document.createElement('p');
-                p.textContent = chunk.trim();
+                renderInline(chunk.trim(), p);
                 container.appendChild(p);
               });
             } else {
-              container.appendChild(document.createTextNode(part));
+              renderInline(part, container);
             }
+          } else if (part.startsWith('<table>')) {
+            const content = part.slice(7, -8); // strip <table> and </table>
+            const tableEl = buildTable(content);
+            if (tableEl) container.appendChild(tableEl);
           } else {
-            // Code segment — inline or block depending on content
-            if (part.includes('\n')) {
+            // <code>...</code> — inline or block by newline detection
+            const content = part.slice(6, -7); // strip <code> and </code>
+            if (content.includes('\n')) {
               const pre  = document.createElement('pre');
               const code = document.createElement('code');
-              code.textContent = part.replace(/^\n/, '').replace(/\n$/, '');
+              code.textContent = content.replace(/^\n/, '').replace(/\n$/, '');
               pre.appendChild(code);
               container.appendChild(pre);
             } else {
               const code = document.createElement('code');
               code.className = 'inline-code';
-              code.textContent = part;
+              code.textContent = content;
               container.appendChild(code);
             }
           }

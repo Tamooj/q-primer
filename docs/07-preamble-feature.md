@@ -30,36 +30,76 @@ or neither.
 
 ---
 
-## `<code>` Tag Convention
+## Markup Convention
 
 Preamble files, `meta.reference_sheet`, question text, and answer text all
-support a single lightweight markup tag: `<code>...</code>`.
+support the same lightweight markup. Three constructs are recognised:
 
-**Inline code** (no newlines in content):
-```
-Class Table has a method, <code>getPrice()</code>, which returns the price.
-```
-Rendered as a monospace inline span.
+### Inline code — backticks (preferred)
 
-**Block code** (content contains newlines):
+```
+Class Table has a method, `getPrice`, which returns the price.
+```
+
+Backtick pairs render as a monospace inline `<code>` span. Use for
+identifiers, class names, variable names, and short expressions. This is
+the preferred form because it is compact and readable in source — especially
+when a sentence references many names.
+
+### Block code — `<code>` tags
+
 ```
 <code>
-public int getPrice() {
-    return myTable.getPrice() + sumChairs();
+public double getPrice() {
+    double total = myTable.getPrice();
+    for (Chair c : myChairs) total += c.getPrice();
+    return total;
 }
 </code>
 ```
-Rendered as a scrollable `<pre><code>` block. Leading and trailing newlines
-are trimmed automatically.
 
-**Mixed preamble example** (prose + code in the same file):
+Content with newlines renders as a scrollable `<pre><code>` block.
+Leading and trailing newlines are trimmed automatically.
+
+`<code>expr</code>` (no newlines) also renders as an inline span — this
+form still works but backtick is preferred for inline use.
+
+### Tables — `<table>` tag with pipe-delimited rows
+
 ```
-Class DiningRoomSet has a constructor which is passed a Table object and an
-ArrayList of Chair objects. It stores these in <code>myTable</code> and
-<code>myChairs</code>.
+<table>
+|        | Method 1 | Method 2 | Method 3 |
+|--------|----------|----------|----------|
+| (A)    | 10       | 50       | 1,000    |
+| (B)    | 55       | 500      | 2,500    |
+| (C)    | 55       | 525      | 25,000   |
+| (D)    | 60       | 1,050    | 1,050    |
+| (E)    | 60       | 1,050    | 50,000   |
+</table>
+```
 
-The <code>getPrice</code> method returns the sum of the table price and all
-chair prices:
+- First non-separator row becomes `<thead>`; remaining rows become `<tbody>`
+- Markdown-style separator rows (`|---|---|`) are silently ignored
+- Leading/trailing `|` characters are optional
+- Table cells support backtick inline code
+- Row labels like `(A)`–`(E)` in the first column are styled as muted
+  identifiers to distinguish them from data cells
+
+### Rules
+
+- These are the only three constructs. Any other HTML-like tag renders as
+  literal text via `textContent` — no `innerHTML` is ever used.
+- For long code listings, use a preamble file rather than embedding in a
+  question JSON string.
+
+### Mixed preamble example
+
+```
+Class `DiningRoomSet` has a constructor which is passed a `Table` object
+and an `ArrayList` of `Chair` objects. It stores these in `myTable` and
+`myChairs`.
+
+The `getPrice` method returns the sum of the table price and all chair prices:
 
 <code>
 public double getPrice() {
@@ -71,13 +111,6 @@ public double getPrice() {
 
 Questions 12–13 refer to this implementation.
 ```
-
-**Rules:**
-- `<code>` is the only supported tag. Any other HTML-like tag in these fields
-  renders as literal text — safely, via `textContent`, never `innerHTML`.
-- Inline `<code>` in question/answer JSON strings is fine and common.
-- For long code listings, use a preamble file rather than embedding in the
-  question string.
 
 ---
 

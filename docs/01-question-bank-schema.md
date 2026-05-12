@@ -180,6 +180,25 @@ Each element is a question object.
 
 ---
 
+## Markup Convention (question text, answer text, preamble files, reference_sheet)
+
+Three constructs are supported everywhere text is displayed. All rendering is
+DOM-safe — `textContent` only, never `innerHTML`.
+
+| Construct | Syntax | Renders as |
+|-----------|--------|------------|
+| Inline code | `` `identifier` `` | Monospace inline span — preferred for class/variable names |
+| Inline code (tag form) | `<code>expr</code>` | Same monospace span — still supported |
+| Block code | `<code>\n...\n</code>` | `<pre><code>` scrollable block — content has newlines |
+| Table | `<table>\n...\n</table>` | HTML table — pipe-delimited rows, first row is header |
+
+Any other HTML-like tag in these fields is rendered as literal text.
+
+See `docs/07-preamble-feature.md` for full examples including mixed prose/code
+preambles and the table format for AP CS-style answer matrices.
+
+---
+
 ## `figure` Object
 
 Present when a question asks the student to interpret a diagram, schematic, chart, or other image. The bank must be delivered as a ZIP archive when any questions include figures.
