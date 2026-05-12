@@ -48,7 +48,7 @@
     },
     {
       "id": "Q03",
-      "question": "Consider the following method.\n\n<code>\npublic void mystery (int n)\n{\n    int k;\n    for (k = 0 ; k < n ; k++)\n    {\n        mystery(k);\n        System.out.print (k) ;\n    }\n}\n</code>\n\nWhat value is returned by the call mystery(3) ?",
+      "question": "Consider the following method.\n\n<code>\npublic void mystery (int n)\n{\n    int k;\n    for (k = 0 ; k < n ; k++)\n    {\n        mystery(k);\n        System.out.print (k) ;\n    }\n}\n</code>\n\nWhat output printed by the call mystery(3) ?",
       "answers": {
         "A": "0123",
         "B": "00123",
