@@ -144,7 +144,7 @@ Guidelines:
     lines.push(`Question: ${question.question}`);
     if (question.figure) lines.push(`Figure: ${question.figure.alt}`);
     lines.push('\nAnswer choices:');
-    for (const key of ['A','B','C','D']) lines.push(`  ${key}: ${question.answers[key]}`);
+    for (const key of Object.keys(question.answers).sort()) lines.push(`  ${key}: ${question.answers[key]}`);
     lines.push(`\nCorrect answer: ${question.correct} â€” ${question.answers[question.correct]}`);
     lines.push(`Student chose: ${chosenKey} â€” ${question.answers[chosenKey]} (${isCorrect ? 'correct âœ“' : 'incorrect âœ—'})`);
     if (question.annotation && question.annotation.content) {

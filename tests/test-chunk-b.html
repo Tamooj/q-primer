@@ -610,7 +610,7 @@ test('getStats after one wrong answer', () => {
   const bank = makeBank(4);
   QuizEngine.startSession(bank);
   const q = QuizEngine.getNextQuestion();
-  const wrongChoice = ['A','B','C','D'].find(k => k !== q.correct);
+  const wrongChoice = Object.keys(q.answers).find(k => k !== q.correct);
   QuizEngine.submitAnswer(q, wrongChoice); // wrong
   const s = QuizEngine.getStats();
   assert.eq(s.correct, 0);
@@ -641,7 +641,7 @@ test('submitAnswer returns false for wrong choice', () => {
   const bank = makeBank(4);
   QuizEngine.startSession(bank);
   const q = QuizEngine.getNextQuestion();
-  const wrong = ['A','B','C','D'].find(k => k !== q.correct);
+  const wrong = Object.keys(q.answers).find(k => k !== q.correct);
   assert.false(QuizEngine.submitAnswer(q, wrong));
 });
 
