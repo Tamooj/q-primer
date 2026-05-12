@@ -2607,7 +2607,7 @@ Guidelines:
 
           // Reveal result with a brief delay for the CSS transition to feel intentional
           setTimeout(() => {
-            for (const key of ['A', 'B', 'C', 'D']) {
+            for (const key of Object.keys(buttons)) {
               const btn = buttons[key];
               if (key === question.correct) {
                 btn.classList.remove('is-selected');
