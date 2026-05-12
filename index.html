@@ -12,6 +12,8 @@
     /* ============================================================
        DESIGN TOKENS
        ============================================================ */
+
+    /* -- Original hardcoded dark palette (kept for reference) -----
     :root {
       --bg:             #0f1117;
       --surface:        #1a1d27;
@@ -21,10 +23,43 @@
       --incorrect:      #ef4444;
       --text-primary:   #e8eaf0;
       --text-secondary: #8b90a7;
+    }
+    ------------------------------------------------------------- */
+
+    /* Non-colour tokens always present */
+    :root {
       --font-mono: 'IBM Plex Mono', monospace;
       --font-sans: 'IBM Plex Sans', sans-serif;
       --session-bar-h:  44px;
       --radius:         6px;
+    }
+
+    /* Light palette (default / OS light mode) */
+    @media (prefers-color-scheme: light) {
+      :root {
+        --bg:             #f8f9fc;
+        --surface:        #ffffff;
+        --border:         #d0d5e3;
+        --accent:         #2563eb;
+        --correct:        #16a34a;
+        --incorrect:      #dc2626;
+        --text-primary:   #111827;
+        --text-secondary: #6b7280;
+      }
+    }
+
+    /* Dark palette (OS dark mode) */
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg:             #0f1117;
+        --surface:        #1a1d27;
+        --border:         #2e3347;
+        --accent:         #4a9eff;
+        --correct:        #22c55e;
+        --incorrect:      #ef4444;
+        --text-primary:   #e8eaf0;
+        --text-secondary: #8b90a7;
+      }
     }
 
     /* ============================================================
