@@ -1,0 +1,49 @@
+Quick Reference
+
+class java.lang.Object
+• boolean equals(Object other)
+• String toString()
+
+class java.lang.Integer
+  • Integer(int value)
+  • int intValue()
+  • Integer.MIN_VALUE 				// minimum value represented by an int or Integer
+  • Integer.MAX_VALUE 			// maximum value represented by an int or Integer
+
+class java.lang.Double
+  • Double(double value)
+  • double doubleValue()
+
+class java.lang.String
+  • int length()
+  • String substring(int from, int to) // returns the substring beginning at from
+				// and ending at to-1
+  • String substring(int from)			 // returns substring(from, length())
+  • int indexOf(String str) 					// returns the index of the first occurrence of str;
+														// returns -1 if not found
+  • int compareTo(String other) // returns a value < 0 if this is less than other
+						// returns a value = 0 if this is equal to other
+						// returns a value > 0 if this is greater than other
+
+class java.lang.Math
+  • static int abs(int x)
+  • static double abs(double x)
+  • static double pow(double base, double exponent)
+  • static double sqrt(double x)
+  • static double random() // returns a double in the range [0.0, 1.0)
+
+interface java.util.List<E>
+  • int size()
+  • boolean add(E obj) 					// appends obj to end of list; returns true
+  • void add(int index, E obj) 			// inserts obj at position index (0 <= index <= size) ,
+														// moving elements at position index and higher
+														// to the right (adds 1 to their indices) and adjusts size
+  • E get(int index)
+  • E set(int index, E obj) 					// replaces the element at position index with obj
+									// returns the element formerly at the specified position
+  • E remove(int index) 				// removes element from position index, moving elements
+						// at position index + 1 and higher to the left
+						// (subtracts 1 from their indices) and adjusts size
+						// returns the element formerly at the specified position
+
+class java.util.ArrayList<E> implements java.util.List<E>

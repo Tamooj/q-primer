@@ -1,0 +1,43 @@
+denominators.
+
+<code>
+public class Fraction
+{
+    private int numerator ;
+    private int denominator ;
+
+    public Fraction ( )
+    {
+        numerator = 0 ;
+        denominator = 1 ;
+    }
+
+    public Fraction (int n, int d)
+    {
+        numerator = n;
+        denominator = d;
+    }
+
+    // postcondition: returns the
+    // numerator
+    public int getNumerator ( )
+    { /* implementation not shown */ }
+
+    // postcondition: returns the
+    // denominator
+    public int getDenominator ( )
+    { /* implementation not shown*/ }
+
+    // postcondition: returns the greatest
+    // common divisor of x and y
+    public int gcd (int x, int y)
+    { /* implementation not shown*/ }
+
+    // postcondition: returns the Fraction
+    // that is the result of multiplying
+    // this Fraction and f
+    public Fraction multiply (Fraction f)
+    { /* implementation not shown */ }
+    // . . . other methods not shown
+}
+</code>

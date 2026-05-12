@@ -1,0 +1,9 @@
+Class Table has a method, getPrice, which takes no parameters and returns the price of the table.
+
+Class Chair also has a method, getPrice, which takes no parameters and returns the price of the chair.
+
+Class DiningRoomSet has a constructor which is passed a Table object and an ArrayList of Chair objects. It stores these parameters in its private data fields myTable and myChairs.
+
+Class DiningRoomSet has a method, getPrice,which takes no parameters and returns the price of the dining room set.
+
+The price of a dining room set is calculated as the sum of the price of its table and all of its chairs.

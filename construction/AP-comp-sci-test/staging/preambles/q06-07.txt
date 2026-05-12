@@ -1,0 +1,58 @@
+<code>
+public class PostOffice
+{
+    // constructor initializes boxes
+    // to length 100
+    public PostOffice( )
+    {   /* implementation not shown */  }
+
+    // returns the given p.o. box
+    // 0 <= theBox < getNumBoxes ()
+    public Box getBox (int theBox)
+    {   /* implementation not shown */  }
+
+    // returns the number of p.o. boxes
+    public int getNumBoxes ()
+    {   /* implementation not shown */  }
+    // private data members and
+    // other methods not shown
+}
+
+public class Box
+{
+    // constructor
+    public Box ( )
+    { /* implementation not shown */}
+
+    // returns the number of this box
+    public int getBoxNumber ( )
+    { /* implementation not shown */}
+
+    // returns the number of pieces
+    // of mail in this box
+    public int getMailCount ( )
+    { /* implementation not shown */}
+
+    // returns the given piece of mail
+    // 0 <= thePiece < getMailCount ( )
+    public Mail getMail (int thePiece)
+    { /* implementation not shown */}
+
+    // true if the box has been assigned
+    // to a customer
+    public boolean isAssigned ( )
+    { /* implementation not shown */}
+
+    // true if the box contains mail
+    public boolean hasMail ( )
+    { /* implementation not shown */}
+    // private data members and
+    // other methods not shown
+}
+
+public class Mail
+{
+    // private members, constructors, and
+    // other methods not shown
+}
+</code>

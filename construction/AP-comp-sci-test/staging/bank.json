@@ -1,0 +1,618 @@
+{
+  "meta": {
+    "title": "AP Computer Science Practice Test 1",
+    "subtitle": "Multiple Choice — 40 Questions",
+    "pool_id": "ap-cs-practice-1",
+    "version": "1.0",
+    "total_questions": 40,
+    "passing_score": null,
+    "exam_question_count": 40,
+    "source_url": null,
+    "description": "AP Computer Science A practice test covering object-oriented programming, arrays, loops, recursion, sorting, searching, and Java fundamentals.",
+    "tags": [
+      "AP",
+      "computer science",
+      "Java",
+      "OOP"
+    ],
+    "reference_sheet": "class `java.lang.Object`\n\n<table>\n| Method | Description |\n|--------|-------------|\n| `boolean equals(Object other)` |  |\n| `String toString()` |  |\n</table>\n\nclass `java.lang.Integer`\n\n<table>\n| Method | Description |\n|--------|-------------|\n| `Integer(int value)` |  |\n| `int intValue()` |  |\n| `Integer.MIN_VALUE` | minimum value represented by an int or Integer |\n| `Integer.MAX_VALUE` | maximum value represented by an int or Integer |\n</table>\n\nclass `java.lang.Double`\n\n<table>\n| Method | Description |\n|--------|-------------|\n| `Double(double value)` |  |\n| `double doubleValue()` |  |\n</table>\n\nclass `java.lang.String`\n\n<table>\n| Method | Description |\n|--------|-------------|\n| `int length()` |  |\n| `String substring(int from, int to)` | returns the substring beginning at from and ending at to-1 |\n| `String substring(int from)` | returns substring(from, length()) |\n| `int indexOf(String str)` | returns the index of the first occurrence of str; returns -1 if not found |\n| `int compareTo(String other)` | returns a value < 0 if this is less than other; returns a value = 0 if this is equal to other; returns a value > 0 if this is greater than other |\n</table>\n\nclass `java.lang.Math`\n\n<table>\n| Method | Description |\n|--------|-------------|\n| `static int abs(int x)` |  |\n| `static double abs(double x)` |  |\n| `static double pow(double base, double exponent)` |  |\n| `static double sqrt(double x)` |  |\n| `static double random()` | returns a double in the range [0.0, 1.0) |\n</table>\n\ninterface `java.util.List<E>`\n\n<table>\n| Method | Description |\n|--------|-------------|\n| `int size()` |  |\n| `boolean add(E obj)` | appends obj to end of list; returns true |\n| `void add(int index, E obj)` | inserts obj at position index (0 <= index <= size) , moving elements at position index and higher to the right (adds 1 to their indices) and adjusts size |\n| `E get(int index)` |  |\n| `E set(int index, E obj)` | replaces the element at position index with obj; returns the element formerly at the specified position |\n| `E remove(int index)` | removes element from position index, moving elements at position index + 1 and higher to the left (subtracts 1 from their indices) and adjusts size; returns the element formerly at the specified position |\n</table>\n\nclass `java.util.ArrayList<E> implements java.util.List<E>`"
+  },
+  "questions": [
+    {
+      "id": "Q01",
+      "question": "Consider the following methods.\n\n<code>\npublic void trial()\n{\n    int a = 10;\n    int b = 5;\n    doublevalues(a,b);\n    System.out.print(b);\n    System.out.print(a);\n}\n\npublic void doublevalues(int c, int d)\n{\n    c = c * 2;\n    d = d * 2;\n    System.out.print(c);\n    System.out.print(d);\n}\n</code>\n\nWhat is printed as the result of the call trial()?",
+      "answers": {
+        "A": "2010",
+        "B": "2010105",
+        "C": "2010510",
+        "D": "20102010",
+        "E": "20101020"
+      },
+      "correct": "C",
+      "reference": "",
+      "annotation": null
+    },
+    {
+      "id": "Q02",
+      "question": "Consider the following method.\n\n<code>\n/**\n* Precondition: a > b > 0\n*/\npublic static int mystery(int a, int b)\n{\n    int d = 0;\n    for (int c = a; c > b; c--)\n    {\n        d=d+c;\n    }\n    return d;\n}\n</code>\n\nWhat is returned by the call mystery(x,y)?",
+      "answers": {
+        "A": "The sum of all the integers greater than y but less than or equal to x",
+        "B": "The sum of all the integers greater than or equal to y but less than or equal to x",
+        "C": "The sum of all the integers greater than y but less than x",
+        "D": "The sum of all the integers greater than y but less than or equal to x",
+        "E": "The sum of all the integers less than y but greater than or equal to x"
+      },
+      "correct": "A",
+      "reference": "",
+      "annotation": null
+    },
+    {
+      "id": "Q03",
+      "question": "Consider the following method.\n\n<code>\npublic void mystery (int n)\n{\n    int k;\n    for (k = 0 ; k < n ; k++)\n    {\n        mystery(k);\n        System.out.print (k) ;\n    }\n}\n</code>\n\nWhat value is returned by the call mystery(3) ?",
+      "answers": {
+        "A": "0123",
+        "B": "00123",
+        "C": "0010012",
+        "D": "00100123",
+        "E": "001001200100123"
+      },
+      "correct": "C",
+      "reference": "",
+      "annotation": null
+    },
+    {
+      "id": "Q04",
+      "question": "Consider an array of integers.\n\n4 10 1 2 6 7 3 5\n\nIf selection sort is used to order the array from smallest to largest values, which of the following represents a possible state of\nthe array at some point during the selection sort process?",
+      "answers": {
+        "A": "1 4 10 2 3 6 7 5",
+        "B": "1 2 4 6 10 7 3 5",
+        "C": "1 2 3 10 6 7 4 5",
+        "D": "4 3 1 2 6 7 10 5",
+        "E": "5 3 7 6 2 1 10 4"
+      },
+      "correct": "C",
+      "reference": "",
+      "annotation": null
+    },
+    {
+      "id": "Q05",
+      "question": "Consider the following code segment:\n\n<code>\nint k;\nint A[];\nA = new int [7];\n\nfor (k = 0; k < A.length; k++)\n{\n    A[k] = A.length – k;\n}\n\nfor (k = 0; k < A.length – 1; k++)\n{\n    A[k+1] = A[k];\n}\n</code>\n\nWhat values will A contain after the code segment is executed?",
+      "answers": {
+        "A": "1 1 2 3 4 5 6",
+        "B": "1 2 3 4 5 6 7",
+        "C": "6 6 5 4 3 2 1",
+        "D": "7 7 6 5 4 3 2",
+        "E": "7 7 7 7 7 7 7"
+      },
+      "correct": "E",
+      "reference": "",
+      "annotation": null
+    },
+    {
+      "id": "Q06",
+      "question": "Consider the following code segment:\n\nPostOffice p[ ]\n\n<code>\np = new PostOffice[10];\n</code>\n\nAssuming that the box has been assigned and that it has at least four pieces of mail waiting in it, what is the correct way of\ngetting the fourth piece of mail from the 57th box of the tenth post office of p?",
+      "answers": {
+        "A": "Mail m = p[10].getBox(57).getmail(4);",
+        "B": "Mail m = p[9].getBox(56).getMail (3);",
+        "C": "Mail m = p.getMail(57).getMail (4) [10];",
+        "D": "Mail m = getMail(getBox(p[9], 560, 3);",
+        "E": "Mail m = new Mail(10, 57, 4);"
+      },
+      "correct": "B",
+      "reference": "",
+      "annotation": null,
+      "preamble": {
+        "file": "q06-07.txt",
+        "label": "Questions 6–7 refer to the following two classes."
+      }
+    },
+    {
+      "id": "Q07",
+      "question": "Consider the incomplete function printEmptyBoxes given below. printEmptyBoxes should print the box numbers of\nall of the boxes that do not contain mail.\n\n<code>\npublic void printEmptyBoxes (PostOffice p [ ])\n{\n    for (int k = 0; k < p.length - 1 ; k++)\n    {\n        for (int x = 0; x < p[k].getNumBoxes( ) - 1 ; x++)\n        {\n            // missing expression\n        }\n    }\n}\n</code>\n\nWhich of the following could be used to replace\n\n<code>\n            // missing expression\n</code>\n\nbody so that printBoxesWithoutMail works as intended?",
+      "answers": {
+        "A": "<code>\nif (p[k].getBox(x).isAssigned( ) && !p[k].getBox(x).hasMail( ) )\n{\n    System.out.println(P[k].getBox(x).getBoxNumber( )) ;\n}\n</code>",
+        "B": "<code>\nif (p[x].getBox(k).isAssigned ( ) && !p[x].getBox(k).hasMail( ))\n{\n    System.out.println(p[x].getBox(k).getBoxNumber( ));\n}\n</code>",
+        "C": "<code>\nif (p[k].getBox(x).isAssigned( ) && !p[k].getBox(x).hasMail( ))\n{\n    System.out.println (p[k].getBoxNumber (x));\n}\n</code>",
+        "D": "<code>\nif (p[x].getBox(k).isAssigned( ) && !p[x].getBox (k).hasMail( ))\n{\n    System.out.println(p[x].getBoxNumber(k));\n}\n</code>",
+        "E": "<code>\nif (p[x].getBox(k).isAssigned( ) && p[x].getBox(k).getMail( ) == 0)\n{\n    System.out.println(k);\n}\n</code>"
+      },
+      "correct": "A",
+      "reference": "",
+      "annotation": null,
+      "preamble": {
+        "file": "q06-07.txt",
+        "label": "Questions 6–7 refer to the following two classes."
+      }
+    },
+    {
+      "id": "Q08",
+      "question": "Assume that a and b are Boolean variables that have been initialized. Consider the following code segment.\n\n<code>\na = a && b;\nb = a || b;\n</code>\n\nWhich of the following statements is true?\nI. The final value of a is the same as the initial value of a.\nII. The final value of b is the same as the initial value of b.\nIII. The final value of a is the same as the initial value of b.",
+      "answers": {
+        "A": "I only",
+        "B": "II only",
+        "C": "III only",
+        "D": "I and II only",
+        "E": "II and III only"
+      },
+      "correct": "B",
+      "reference": "",
+      "annotation": null
+    },
+    {
+      "id": "Q09",
+      "question": "Consider the following code segment.\n\n<code>\nint x;\nx = 53;\nif (x > 10)\n{\n    System.out.print(“A”) ;\n}\nif (x > 30)\n{\n    System.out.print(“B”) ;\n}\nelse if (x > 40)\n{\n    System.out.print(“C”) ;\n}\nif (x > 50)\n{\n    System.out.print (“D”) ;\n}\nif (x > 70)\n{\n    System.out.print (“E”) ;\n}\n</code>\n\nWhat is output when the code is executed?",
+      "answers": {
+        "A": "A",
+        "B": "D",
+        "C": "ABD",
+        "D": "ABCD",
+        "E": "ABCDE"
+      },
+      "correct": "C",
+      "reference": "",
+      "annotation": null
+    },
+    {
+      "id": "Q10",
+      "question": "Consider the following code segment:\n\n<code>\nint j;\nint k;\nfor (j = -2; j <= 2; j = j + 2)\n{\n    for (k = j; k < j + 3; k++)\n    {\n        System.out.print(k + “ “ ) ;\n    }\n}\n</code>\n\nWhat is the output when the code is executed?",
+      "answers": {
+        "A": "-2 -1 0",
+        "B": "-2 -1 0 1 2",
+        "C": "0 1 2 0 1 2 0 1 2",
+        "D": "-2 0 2",
+        "E": "-2 -1 0 0 1 2 2 3 4"
+      },
+      "correct": "E",
+      "reference": "",
+      "annotation": null
+    },
+    {
+      "id": "Q11",
+      "question": "Consider the following method.\n\n<code>\npublic void mystery (int count, String s)\n{\n    if (count <= 0)\n    {\n        return;\n    }\n    if (count % 3 == 0)\n    {\n        System.out.print(s + “--” + s)\n    }\n    else if (count % 3 == 1)\n    {\n        System.out.print(s + “-” + s)\n    }\n    else\n    {\n        System.out.print (s) ;\n    }\n    mystery(count - 1, s) ;\n}\n</code>\n\nWhat is output by the call mystery(5, “X”); ?",
+      "answers": {
+        "A": "XX - XX - - XXX - X",
+        "B": "XX - XX - XX - XX",
+        "C": "XXX - - XX - X - XX - - XXX",
+        "D": "XX - XXX - - XXX - XX",
+        "E": "XXXXX"
+      },
+      "correct": "A",
+      "reference": "",
+      "annotation": null
+    },
+    {
+      "id": "Q12",
+      "question": "What is the correct way to define the signature of the constructor for the DiningRoomSet class?",
+      "answers": {
+        "A": "public void DiningRoomSet (Table t, ArrayList, chairs)",
+        "B": "public DiningRoomSet (Table t, ArrayList chairs)",
+        "C": "public void DiningRoomSet (Table t, ArrayList Chair Chairs)",
+        "D": "public DiningRoomSet (Table t, ArrayList Chair Chairs)",
+        "E": "public DiningRoomSet (Table t, Chair Chairs)"
+      },
+      "correct": "B",
+      "reference": "",
+      "annotation": null,
+      "preamble": {
+        "file": "q12-13.txt",
+        "label": "Questions 12–13 refer to the following classes and method descriptions."
+      }
+    },
+    {
+      "id": "Q13",
+      "question": "What is the correct way to implement the getPrice method of the DiningRoomSet class?",
+      "answers": {
+        "A": "public double getPrice(Table t, ArrayList chairs)\n\n<code>\n{\n    return t.getPrice() + chairs.getPrice() ;\n}\n</code>",
+        "B": "public double getPrice(Table t, ArrayList chairs)\n\n<code>\n{\n    return myTable.getPrice() + myChairs.getPrice();\n}\n</code>",
+        "C": "public double getPrice()\n\n<code>\n{\n    return myTable.getPrice() + myChairs.getPrice();\n}\n</code>",
+        "D": "public double getPrice()\n\n<code>\n{\n    double result = myTable.getPrice();\n    for (int k = 0; k < myChairs.size() - 1; k++)\n    {\n        result += ((Chair)myChairs.get(k)).getPrice();\n    }\n    return result;\n}\n</code>",
+        "E": "public double getPrice()\n\n<code>\n{\n    double result = myTable.getPrice() ;\n    for (int k = 0; k < myChairs.length - 1; k++)\n    {\n        result += ((Chair)myChairs[k]).getPrice( );\n    }\n    return result;\n}\n</code>"
+      },
+      "correct": "D",
+      "reference": "",
+      "annotation": null,
+      "preamble": {
+        "file": "q12-13.txt",
+        "label": "Questions 12–13 refer to the following classes and method descriptions."
+      }
+    },
+    {
+      "id": "Q14",
+      "question": "Consider the following output:\n\n<code>\n6 5 4 3 2 1\n5 4 3 2 1\n4 3 2 1\n3 2 1\n2 1\n1\n</code>\n\nWhich of the following code segments produces the above output when executed?",
+      "answers": {
+        "A": "<code>\nfor (int j = 6; j < 0; j--)\n{\n    for (int k = j; k > 0 ; k --)\n    {\n        System.out.print (k + “ “) ;\n    }\n    System.out.println(“”) ;\n}\n</code>",
+        "B": "<code>\nfor (int j = 6; j >= 0; j--)\n{\n    for (int k = j; k >= 0; k--)\n    {\n        System.out.print(k + “ “);\n    }\n    System.out.println (“ “) ;\n}\n</code>",
+        "C": "<code>\nfor (int j = 0; j < 6; j++)\n{\n    for (int k = 6 - j; k > 0; k--)\n    {\n        System.out.print (k + “ “) ;\n    }\n    system.out.println (“ “) ;\n}\n</code>",
+        "D": "<code>\nfor (int j = 0; j < 6; j++)\n{\n    for (int k = 7 - j ; k > 0 ; k --)\n    {\n        System.out.print(k + “ “);\n    }\n    System.out.println (“ “) ;\n}\n</code>",
+        "E": "<code>\nfor (int j = 0; j < 6; j++)\n{\n    for (int k = 6 - j ; k >= 0; k--)\n    {\n        System.out.print(k + “ “);\n    }\n    System.out.println (“ “) ;\n}\n</code>"
+      },
+      "correct": "C",
+      "reference": "",
+      "annotation": null
+    },
+    {
+      "id": "Q15",
+      "question": "Consider the following code segment.\n\n<code>\nList<Integer> list = new ArrayList<Integer>();\nlist.add(new Integer (7));\nlist.add (new Integer (6));\nlist.add (1, new Integer (5));\nlist.add (1, new Integer (4));\nlist.add (new Integer (3));\nlist.set (2, new Integer (2));\nlist.add (1, new Integer (1));\nSystem.out.prinln (list);\n</code>\n\nWhat is printed as a result of executing this code segment?",
+      "answers": {
+        "A": "[1, 4, 2, 7, 6, 3]",
+        "B": "[7, 1, 4, 2, 6, 3]",
+        "C": "[7, 2, 5, 4, 3, 1]",
+        "D": "[7, 6, 2, 4, 3, 1]",
+        "E": "[7, 1, 2]"
+      },
+      "correct": "B",
+      "reference": "",
+      "annotation": null
+    },
+    {
+      "id": "Q16",
+      "question": "Consider the following declarations.\n\n<code>\npublic interface Animal\n{\n    String makeSound();\n    String animalType();\n}\npublic static class Dog implements Animal\n{\n    public String makeSound(Animal a)\n    {\n        // Implementation not shown\n    }\n}\n</code>\n\nWhich of the following methods must be included in the declaration of the Dog class in order for the class to successfully\ncompile?\n\n<code>\nI. public String makeSound()\nII. public String animalType()\nIII. public String animalType(animal b)\n</code>",
+      "answers": {
+        "A": "I only",
+        "B": "II only",
+        "C": "I and II only",
+        "D": "II and III only",
+        "E": "I, II, and III"
+      },
+      "correct": "C",
+      "reference": "",
+      "annotation": null
+    },
+    {
+      "id": "Q17",
+      "question": "Consider the following two classes.\n\n<code>\npublic static class Fish\n{\n    public String endoskeleton = “bone”;\n    public void action()\n    {\n        System.out.println(“splash splash”);\n    }\n}\n\npublic static class Shark extends Fish\n{\n    public void action()\n    {\n        System.out.println(“chomp chomp”);\n    }\n    public String endoskeleton=”cartilage”;\n}\n</code>\n\nWhich of the following is the correct output after the following code segment is executed?\n\n<code>\nFish Bob = new Shark();\nSystem.out.println(Bob.endoskeleton);\nBob.action();\n</code>",
+      "answers": {
+        "A": "<code>\nbone\nchomp chomp\n</code>",
+        "B": "<code>\nbone\nsplash splash\n</code>",
+        "C": "<code>\ncartilage\nsplash splash\n</code>",
+        "D": "<code>\ncartilage\nchomp chomp\n</code>",
+        "E": "<code>\ncartilage\nsplash splash\nchomp chomp\n</code>"
+      },
+      "correct": "A",
+      "reference": "",
+      "annotation": null
+    },
+    {
+      "id": "Q18",
+      "question": "Which of the following can be used to replace “// Missing code” so that the insertSort method will execute\nproperly?",
+      "answers": {
+        "A": "<code>\nsort[index]=sort[index-1];\nindex++;\n</code>",
+        "B": "<code>\nsort[index-1]=sort[index];\nindex--;\n</code>",
+        "C": "<code>\nsort[index]=sort[index+1];\nindex++;\n</code>",
+        "D": "<code>\nsort[index]=sort[index-1];\nindex--;\n</code>",
+        "E": "<code>\nsort[index]=sort[index+1];\nindex--;\n</code>"
+      },
+      "correct": "D",
+      "reference": "",
+      "annotation": null,
+      "preamble": {
+        "file": "q18-19.txt",
+        "label": "Questions 18–19 refer to the following incomplete method."
+      }
+    },
+    {
+      "id": "Q19",
+      "question": "Assuming that the “// Missing code” is implemented properly, what change can be made to the code in order for the\narray to be sorted in descending order?",
+      "answers": {
+        "A": "Replace Line 6 with: while (index < 0 && sort[index-1]<temp)",
+        "B": "Replace Line 6 with: while (index < 0 && sort[index-1]<temp)",
+        "C": "Replace Line 6 with: while (index > 0 && sort[index-1]<temp)",
+        "D": "Replace Line 3 with: for (int index=sort.length-1;index>0;index--)",
+        "E": "Replace Line 3 with: for (int index=1;index>0;index--)"
+      },
+      "correct": "C",
+      "reference": "",
+      "annotation": null,
+      "preamble": {
+        "file": "q18-19.txt",
+        "label": "Questions 18–19 refer to the following incomplete method."
+      }
+    },
+    {
+      "id": "Q20",
+      "question": "Which of the following arrays would be sorted the slowest using insertion sort?",
+      "answers": {
+        "A": "[3 4 6 2 7 3 9]",
+        "B": "[3 2 5 4 6 7 9]",
+        "C": "[9 7 6 5 4 3 2]",
+        "D": "[2 3 4 5 6 7 9]",
+        "E": "[9 3 2 4 5 7 6]"
+      },
+      "correct": "C",
+      "reference": "",
+      "annotation": null
+    },
+    {
+      "id": "Q21",
+      "question": "Consider the method multiply of the Fraction class.\n\n<code>\n// postcondition: returns the Fraction\n// that is the result of multiplying\n// this Fraction and f\npublic Fraction multiply (Fraction f)\n{ /* missing code*/ }\n</code>\n\nWhich of the following statements can be used to replace /* missing code */ so that the muliply method is corretly\nimplemented?\n\n<code>\nI. return Fraction (\nnumerator * f.getNumerator ( ) ,\ndenominator * f.getDenominator ( ) );\n\nII. return new Fraction (\nnumerator * f.numerator ,\ndenominator * f.denominator ( ) );\n\nIII. return new Fraction (\nnumerator * f.getNumerator ( ) ,\ndenominator * f.getDenominator ( ) );\n</code>",
+      "answers": {
+        "A": "I only",
+        "B": "II only",
+        "C": "III only",
+        "D": "I and III",
+        "E": "II and III"
+      },
+      "correct": "C",
+      "reference": "",
+      "annotation": null,
+      "preamble": {
+        "file": "q21-23.txt",
+        "label": "Questions 21–23 refer to the following incomplete class declaration used to represent fractions with integral numerators and"
+      }
+    },
+    {
+      "id": "Q22",
+      "question": "Consider the use of the Fraction class to muliply the fractions 3/4 and 7/19.\nConsider the following code:\n\n<code>\nFraction fractionOne;\nFraction fractionTwo;\nFraction answer;\nfractionOne = new Fraction (3, 4) ;\nfractionTwo = new Fraction (7, 19) ;\n/* missing code */\n</code>\n\nWhich of the following could be used to replace /* missing code */ so that answer contains the result of muliplying\nfractionOne by fractionTwo?",
+      "answers": {
+        "A": "answer = fractionOne * fractionTwo",
+        "B": "answer = multiply (fractionOne,fractionTwo) ;",
+        "C": "answer = fractionOne.multiply (fractionTwo) ;",
+        "D": "answer = new Fraction (fractionOne,fractionTwo) ;",
+        "E": "answer = (fractionOne .getNumerator ( ) * fractionTwo .getNumerator ( ) ) /\n\n<code>\n(fractionOne .getDenominator ( ) * fractionTwo .getDenominator ( ) ) ;\n</code>"
+      },
+      "correct": "C",
+      "reference": "",
+      "annotation": null,
+      "preamble": {
+        "file": "q21-23.txt",
+        "label": "Questions 21–23 refer to the following incomplete class declaration used to represent fractions with integral numerators and"
+      }
+    },
+    {
+      "id": "Q23",
+      "question": "The following incomplete class declaration is intended to extend the Fraction class so that fractions can be manipulated in\nreduced form (lowest terms).\n\nNote that a fraction can be reduced to lowest terms by dividing both the numerator and denominator by the greatest common\ndivisor (gcd) of the numerator and denominator.\n\n<code>\npublic class ReducedFraction extends Fraction\n{\n    private int reducedNumerator ;\n    private int reducedDenominator ;\n    // . . . constructors and other methods not shown\n}\n</code>\n\nConsider the following proposed constructors for the ReducedFraction class:\n\nI.\n\n<code>\npublic ReducedFraction ( )\n{\n    reducedNumerator = 0;\n    reducedDenominator = 1;\n}\n</code>\n\nII.\n\n<code>\n public reducedFraction (int n, int d)\n{\n    numerator = n;\n    denominator = d;\n    reducedNumerator = n / gcd (n, d);\n    reducedDenominator = d / gcd (n, d);\n}\n</code>\n\nIII.\n\n<code>\npublic ReducedFraction (int n, int d)\n{\n    super (n, d) ;\n    reducedNumerator = n / gcd (n, d) ;\n    reducedDenominator = d / gcd (n, d) ;\n}\n</code>\n\nWhich of these constructor(s) would be legal for the ReducedFraction class?",
+      "answers": {
+        "A": "I only",
+        "B": "II only",
+        "C": "III only",
+        "D": "I and III",
+        "E": "II and III"
+      },
+      "correct": "D",
+      "reference": "",
+      "annotation": null,
+      "preamble": {
+        "file": "q21-23.txt",
+        "label": "Questions 21–23 refer to the following incomplete class declaration used to represent fractions with integral numerators and"
+      }
+    },
+    {
+      "id": "Q24",
+      "question": "Consider s1 and s2 defined as follows;\n\n<code>\nString s1 = new String(“hello”) ;\nString s2 = new String(“hello”) ;\n</code>\n\nWhich of the following is/are correct ways to see if s1 and s2 hold identical strings?\n\nI.\n\n<code>\nif (s1 == s2)\n/* s1 and s2 are identical */\n</code>\n\nII.\n\n<code>\nif (s1 .compareTo (s2) == 0 )\n/* s1 and s2 are identical */\n</code>\n\nIII.\n\n<code>\nif (s1 .equals (s2) )\n/* s1 and s2 are identical */\n</code>",
+      "answers": {
+        "A": "I only",
+        "B": "III only",
+        "C": "I and III only",
+        "D": "II and III only",
+        "E": "I, II, and III"
+      },
+      "correct": "D",
+      "reference": "",
+      "annotation": null
+    },
+    {
+      "id": "Q25",
+      "question": "Consider the following variable and method declarations:\n\n<code>\nString s ;\nString t ;\npublic void mystery (String a, String b)\n{\n    a = a + b ;\n    b = b + a ;\n}\n</code>\n\nAssume that s has the value “Elizabeth” and t has the value “Andrew” and mystery (s, t) is called. What are the\nvalues of s and t after the call to mystery?\n\na, b =",
+      "answers": {
+        "A": "Elizabeth, Andrew",
+        "B": "ElizabethAndrew, AndrewElizabeth",
+        "C": "ElizabethAndrew, AndrewElizabethAndrew",
+        "D": "ElizabethAndrew, ElizabethAndrewAndrew",
+        "E": "ElizabethAndrewElizabeth, AndrewElizabethAndrew"
+      },
+      "correct": "A",
+      "reference": "",
+      "annotation": null
+    },
+    {
+      "id": "Q26",
+      "question": "Consider the following incomplete and incorrect class declaration:\n\n<code>\npublic class Point implements Comparable\n{\n    private int x;\n    private int y;\n    public boolean compareTo (Point other)\n    {\n        return (x == other.x &&\n        y == other.y);\n    }\n    // . . . constructors and other methods\n    // not shown\n}\n</code>\n\nFor which of the following reasons is the above class declaration incorrect?\n\nI. Objects may not access private data fields of other objects in the same class.\n\nII. The Comparable interface requires that compareTo be passed an Object rather than a Point.\n\nIII. The Comparable interface requires that compareTo return an int rather than a boolean.",
+      "answers": {
+        "A": "I only",
+        "B": "III only",
+        "C": "I and III",
+        "D": "II and III",
+        "E": "I, II, and III"
+      },
+      "correct": "E",
+      "reference": "",
+      "annotation": null
+    },
+    {
+      "id": "Q27",
+      "question": "Consider the following abstraction of a for loop where <1>, <2>, <3>, and <4> represent legal code in the indicated\nlocations:\n\n<code>\nfor (<1>; <2>; <3>)\n{\n    <4>\n}\n</code>\n\nWhich of the following while loops has the same functionality as the above for loop?",
+      "answers": {
+        "A": "<code>\n <1> ;\nwhile (<2>)\n{\n    <3>;\n    <4>\n}\n</code>",
+        "B": "<code>\n<1> ;\nwhile ( <2>)\n{\n    <4>\n    <3> ;\n}\n</code>",
+        "C": "<code>\n<1> ;\nwhile ( !<2>)\n{\n    <3> ;\n    <4>\n}\n</code>",
+        "D": "<code>\n <1> ;\nwhile ( !<2>)\n{\n    <4>\n    <3>;\n}\n</code>",
+        "E": "<code>\n<1> ;\n<3> ;\nwhile ( <2>)\n{\n    <4>\n    <3> ;\n}\n</code>"
+      },
+      "correct": "B",
+      "reference": "",
+      "annotation": null
+    },
+    {
+      "id": "Q28",
+      "question": "Consider the following expression:\n\na / b + c – d % e * f\n\nWhich of the expressions given below is equivalent to the one given above?",
+      "answers": {
+        "A": "( (a / b) + (c – d) ) % (e *f)",
+        "B": "( ( ( ( a / b) + c) – d) % e) * f",
+        "C": "( ( a / b) + c) – (d % (e * f)",
+        "D": "(a / ( (b + c) – d) % e) * f",
+        "E": "( (a / b) + c) – ( (d % e) * f)"
+      },
+      "correct": "E",
+      "reference": "",
+      "annotation": null
+    },
+    {
+      "id": "Q29",
+      "question": "Assume that a program declares and initializes x as follows:\n\n<code>\nString [] x ;\nx = new String[10] ;\ninitialize(x); // Fills the array x with\n// valid strings each of\n// length 5\n</code>\n\nWhich of the following code segments correctly traverses the array and prints out the first character of all ten strings followed\nby the second character of all ten strings, and so on?\n\nI.\n\n<code>\nint i;\nint j;\nfor (i = 0 ; i < 10 ; i++)\nfor (j = 0 ; j < 5 ; j++)\nSystem.out.print (x[i].substring (j, j+1));\n</code>\n\nII.\n\n<code>\nint i;\nint j;\nfor (i = 0 ; i < 5 ; i++)\nfor (j = 0 ; j < 10 ; j++)\nSystem.out.print (x[j].substring (i, i+1));\n</code>\n\nIII.\n\n<code>\nint i ;\nint j ;\nfor (i = 0 ; i < 5 ; i++)\nfor (j = 0 ; j < 10 ; j++)\nSystem.out.print (x[i].substring (j, j+1));\n</code>",
+      "answers": {
+        "A": "I only",
+        "B": "II only",
+        "C": "I and II",
+        "D": "II and III",
+        "E": "I, II, and III"
+      },
+      "correct": "B",
+      "reference": "",
+      "annotation": null
+    },
+    {
+      "id": "Q30",
+      "question": "Consider the following declaration and assignment statements:\n\n<code>\nint a = 7 ;\nint b = 4 ;\ndouble c ;\nc = a / b ;\n</code>\n\nAfter the assignment statement is executed, what’s the value of c?",
+      "answers": {
+        "A": "1.0",
+        "B": "1.75",
+        "C": "2.0",
+        "D": "An error occurs because c was not initialized.",
+        "E": "An error occurs because because a and b are integers and c is a double."
+      },
+      "correct": "A",
+      "reference": "",
+      "annotation": null
+    },
+    {
+      "id": "Q31",
+      "question": "Consider the following code segment:\n\n<code>\n  int x ;\n  x = /* initialized to an integer */\n  if (x % 2 == 0 && x / 3 == 1)\n     System.out.print(“Yes”) ;\n</code>\n\nFor what values of x will the word “Yes” be printed when the code segment is executed?",
+      "answers": {
+        "A": "0",
+        "B": "4",
+        "C": "Whenever x is even and x is not divisible by 3",
+        "D": "Whenever x is odd and x is divisible by 3",
+        "E": "Whenever x is even and x is divisible by 3"
+      },
+      "correct": "B",
+      "reference": "",
+      "annotation": null
+    },
+    {
+      "id": "Q32",
+      "question": "Consider the following incomplete class definition:\n\n<code>\npublic class SomeClass\n{\n    private String myName ;\n    // postcondition: returns myName\n\n    public String getName ( )\n    {   /* implmentation not shown */   }\n\n    // postcondition: myName == name\n    public void setName (String name)\n    {   /* implmentation not shown */     }\n    // . . . constructors, other methods\n    // and private data not shown\n}\n</code>\n\nNow consider the method swap, not part of the SomeClass class.\n\n<code>\n// precondition: x and y are correctly\n// constructed\n// postcondition: the names of objects\n// x and y are swapped\npublic void swap (SomeClass x, SomeClass y)\n{\n    <missing code>\n}\n</code>\n\nWhich of the following code segments can replace <missing code> so that the method swap works as intended?\n\nI.\n\n<code>\nSomeClass temp ;\ntemp = x;\nx = y ;\ny = temp ;\n</code>\n\nII.\n\n<code>\nString temp ;\ntemp = x.myName ;\nx .myName = y .myName\ny .myName = temp ;\n</code>\n\nIII.\n\n<code>\nString temp ;\ntemp = x .getName ( ) ;\nx .setName (y .getName ( ) ) ;\ny .setName (temp) ;\n</code>",
+      "answers": {
+        "A": "I only",
+        "B": "III only",
+        "C": "I and III",
+        "D": "II and III",
+        "E": "I, II, and III"
+      },
+      "correct": "B",
+      "reference": "",
+      "annotation": null
+    },
+    {
+      "id": "Q33",
+      "question": "A bookstore wants to store information about the different types of books it sells.\n\nFor each book, it wants to keep track of the title of the book, the author of the book, and whether the book is a work of fiction\nor nonfiction. If the book is a work of fiction, then the bookstore wants to keep track of whether it is a romance novel, a mystery novel, or\nscience fiction. If the book is a work of nonfiction, then the bookstore wants to keep track of whether it is a biography, a cookbook, or a selfhelp\nbook.\n\nWhich of the following is the best design?",
+      "answers": {
+        "A": "Use one class, Book, which has three data fields: String title, String author, and int bookType.",
+        "B": "Use four unrelated classes: Book, Title, Author, and BookType.",
+        "C": "Use a class Book which has two data fields: String title, String author, and a subclass: BookType.",
+        "D": "Use a class Book which has two data fields: String title, String author, and two subclasses:\nRomanceNovel, Mystery, ScienceFiction, Biography, Cookbook, and SelfHelpBook.",
+        "E": "Use a class Book which has two data fields: String title, String author, and two subclasses:\nFictionWork and NonFictionWork. The class FictionWork has three subclasses, RomanceNovel,\nMystery, and ScienceFiction. The class NonFictionWork has three subclasses: Biography,\nCookbook, and SelfHelpBook."
+      },
+      "correct": "E",
+      "reference": "",
+      "annotation": null
+    },
+    {
+      "id": "Q34",
+      "question": "Consider the following code:\n\n<code>\npublic int mystery (int x)\n{\n    if (x == 1)\n    return <missing value> ;\n    else\n    return (2 * mystery (x-1) ) + x ;\n}\n</code>\n\nWhich of the following can be used to replace <missing value> so that mystery (4) returns 34?",
+      "answers": {
+        "A": "0",
+        "B": "1",
+        "C": "2",
+        "D": "3",
+        "E": "4"
+      },
+      "correct": "C",
+      "reference": "",
+      "annotation": null
+    },
+    {
+      "id": "Q35",
+      "question": "Consider the following code segment:\n\n<code>\nint [ ] X;\nint [ ] Y;\n\nX = initializeX ( ) ;   // returns a valid\n                                // initialized int [ ]\n\nY = initializeY ( ) ; // returns a valid\n                            // initialized int [ ]\n\nfor (int k = 0 ; k < X.length && X[k] == Y[k]; k++)\n{\n    /* some code */\n}\n</code>\n\nAssuming that after X and Y are initialized, X.length == Y.length, which of the following must be true after executing\nthis code segment?",
+      "answers": {
+        "A": "k < X.length",
+        "B": "k < X.length && X[k] == Y[k]",
+        "C": "k < X.length && X[k] != Y[k]",
+        "D": "k >= X.length || X[k] == Y[k]",
+        "E": "k >= X.length || X[k] != Y[k]"
+      },
+      "correct": "E",
+      "reference": "",
+      "annotation": null
+    },
+    {
+      "id": "Q36",
+      "question": "Which of the following would not cause a run-time exception?",
+      "answers": {
+        "A": "Dividing an integer by zero",
+        "B": "Using an object that has been declared but not instantiated",
+        "C": "Accessing an array element with an array index that is equal to the length of the array",
+        "D": "Attempting to cast an object to a subclass of which it is not an instance",
+        "E": "Attempting to call a method with the wrong number of arguments"
+      },
+      "correct": "E",
+      "reference": "",
+      "annotation": null
+    },
+    {
+      "id": "Q37",
+      "question": "Assume that a and b are properly initialized variables of type Double.\nWhich of the following is an equivalent expression to:\n\n<code>\na.doubleValue ( ) != b.doubleValue ( )\n</code>",
+      "answers": {
+        "A": "a != b",
+        "B": "a.notEquals (b)",
+        "C": "! (a.doubleValue ( ) .equals(b.doubleValue ( ) ) )",
+        "D": "! (a.compareTo(b) )",
+        "E": "a.compareTo(b) != 0"
+      },
+      "correct": "E",
+      "reference": "",
+      "annotation": null
+    },
+    {
+      "id": "Q38",
+      "question": "Which of the following would be the least effective way of ensuring reliability in a program?",
+      "answers": {
+        "A": "Encapsulating functionality in a class by declaring all data fields to be public",
+        "B": "Defining and following preconditions and postconditions for every method",
+        "C": "Including assertions at key places in the code",
+        "D": "Using descriptive variable names",
+        "E": "Indenting code in a consistent and logical manner"
+      },
+      "correct": "A",
+      "reference": "",
+      "annotation": null
+    },
+    {
+      "id": "Q39",
+      "question": "Consider a dictionary that has 1,000 pages with 50 words on each page. In order to look up a given target word, a student is considering using one of the following three methods:\n\nMethod 1\n\nUse a binary search technique to find the correct page (comparing the target word with the first word on a given page). When the correct page is found, use a sequential search technique to find the target word on the page.\n\nMethod 2\n\nUse a sequential search technique to find the correct page (comparing the target word with the first word on a given page). When the correct page is found, use another sequential search technique to find the target word on the page.\n\nMethod 3\n\nUse a sequential search technique on all of the words in the dictionary to find the target word.\n\nWhich of the following best characterizes the greatest number of words that will be examined using each method?\n\nMethod 1 Method 2 Method 3",
+      "answers": {
+        "A": "10 50 1,000",
+        "B": "55 500 2,500",
+        "C": "55 525 25,000",
+        "D": "60 1,050 1,050",
+        "E": "60 1,050 50,000"
+      },
+      "correct": "E",
+      "reference": "",
+      "annotation": null
+    },
+    {
+      "id": "Q40",
+      "question": "Which of the following is not a peripheral?",
+      "answers": {
+        "A": "A color laser printer",
+        "B": "A monitor",
+        "C": "A word processing application",
+        "D": "A mouse",
+        "E": "An external CD-ROM drive"
+      },
+      "correct": "C",
+      "reference": "",
+      "annotation": null
+    }
+  ]
+}

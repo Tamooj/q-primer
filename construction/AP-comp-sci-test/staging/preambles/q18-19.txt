@@ -1,0 +1,16 @@
+The following insertSort method sorts the values in an integer array, sort, in ascending order.
+
+<code>
+Line 1: public static void insertSort(int[] sort)
+Line 2: {
+Line 3:     for (int index=1;index<sort.length;index++)
+Line 4:     {
+Line 5:         int temp=sort[index];
+Line 6:         while (index > 0 && sort[index-1]>temp)
+Line 7:         {
+Line 8:             // Missing code
+Line 9:         }
+Line 10:         sort[index]=temp;
+Line 11:     }
+Line 12: }
+</code>
