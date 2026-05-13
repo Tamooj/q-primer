@@ -27,7 +27,7 @@ Alternatively, the app is hosted on GitHub Pages at **https://tamooj.github.io/q
 
 **3. Load a question bank**
 
-Either drag a question bank file from the `banks/` folder onto the drop zone, or paste a direct URL into the URL field and click Load. They quizes .zip files that  basically just a single .json of questions/answers, but the zip file allows the inclusion of figure images, which are needed by some quizes)
+Either drag a question bank file from the `banks/` folder onto the drop zone, or paste a direct URL into the URL field and click Load. The quizzes are.zip files that  basically have a single .json with the questions/answers, but the zip file allows the inclusion of figure images, which are needed by some quizes)
 There are a few sample quizzes provided for practice.  Feel free to submit your own - the file format is is described in the docs, and a simple assembly pythjon script is provided.  Banks loaded by URL are remembered locally and reloaded automatically on your next visit to save on typing.
 
 **4. Start studying**
