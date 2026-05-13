@@ -216,6 +216,14 @@
       margin-bottom: 0.2rem;
     }
 
+    .setup-version {
+      font-size: 0.65rem;
+      color: var(--text-secondary);
+      opacity: 0.5;
+      text-align: center;
+      padding: 0.75rem 0 0.25rem;
+    }
+
     .setup-tagline {
       font-size: 0.78rem;
       color: var(--text-secondary);
@@ -315,6 +323,7 @@
     .sbar-right { display: flex; align-items: center; gap: 1rem; }
 
     .sbar-wordmark  { font-size: 0.78rem; font-weight: 600; color: var(--accent); letter-spacing: 0.06em; }
+    .sbar-version   { font-size: 0.65rem; color: var(--text-secondary); opacity: 0.6; }
     .sbar-score     { font-size: 0.78rem; color: var(--text-secondary); }
     .sbar-score strong { color: var(--text-primary); font-weight: 500; }
     .sbar-remaining { font-size: 0.72rem; color: var(--text-secondary); }
@@ -882,6 +891,8 @@
         </div>
       </div>
 
+      <div class="setup-version" id="setup-version"></div>
+
     </div>
   </div>
 
@@ -895,6 +906,7 @@
     <div id="session-bar">
       <div class="sbar-left">
         <span class="sbar-wordmark">Q-PRIMER</span>
+        <span class="sbar-version" id="sbar-version"></span>
         <span class="sbar-score">
           <strong id="score-display">–</strong>
           <span id="score-label"></span>
@@ -949,6 +961,9 @@
        ============================================================ -->
   <script>
     'use strict';
+
+    // ── App version ───────────────────────────────────────────────────────
+    const APP_VERSION = 'v1.2.0';
 
     // ── URL parameters ────────────────────────────────────────────────────
     // ?start=N  (1-based index into bank.questions) — forces fresh start at
@@ -2795,6 +2810,10 @@ Guidelines:
       // ── Init ─────────────────────────────────────────────────────
 
       function init() {
+        // Stamp version
+        document.getElementById('setup-version').textContent = APP_VERSION;
+        document.getElementById('sbar-version').textContent  = APP_VERSION;
+
         // Restore saved profile
         const saved = Storage.getStudent();
         if (saved && saved.profile) {
