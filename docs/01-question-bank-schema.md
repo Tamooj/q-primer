@@ -120,7 +120,7 @@ The `meta.coach_model` field is an optional route key that controls which AI mod
 | `ap_physics` | `claude-sonnet-4-5` | |
 | `ap_cs_principles` | `claude-sonnet-4-5` | |
 | `ap_cs_applied` | `claude-sonnet-4-5` | Future: agent SDK path |
-| `ap_calculus` | `claude-sonnet-4-5` | Future: bump to 4-6 for math reasoning |
+| `ap_calculus` | `claude-sonnet-4-6` | Extended math reasoning |
 | `amateur_radio` | `claude-sonnet-4-5` | RF/electronics/regulations |
 
 The routing table lives in `CoachAPI` in `index.html`. Add new keys there when new subjects or models are introduced.
