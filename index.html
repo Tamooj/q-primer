@@ -1889,8 +1889,29 @@ Guidelines:
        ============================================================ */
     const CoachAPI = (() => {
 
-      const MODEL      = 'claude-sonnet-4-5';
       const MAX_TOKENS = 2048;
+
+      // ── Model routing ─────────────────────────────────────────────────
+      // Banks set meta.coach_model to a route key. Unknown or absent keys
+      // fall back to MODEL_DEFAULT.
+      const MODEL_DEFAULT = 'claude-haiku-4-5';
+      const MODEL_ROUTER  = {
+        'trivia':           'claude-haiku-4-5',
+        'history':          'claude-haiku-4-5',
+        'civics':           'claude-haiku-4-5',
+        'ap_biology':       'claude-sonnet-4-5',
+        'ap_chemistry':     'claude-sonnet-4-5',
+        'ap_physics':       'claude-sonnet-4-5',
+        'ap_cs_principles': 'claude-sonnet-4-5',
+        'ap_cs_applied':    'claude-sonnet-4-5',  // TODO: route to agent_sdk when implemented
+        'ap_calculus':      'claude-sonnet-4-5',  // TODO: bump to claude-sonnet-4-6 when available
+        'amateur_radio':    'claude-sonnet-4-5',
+      };
+
+      function resolveModel(bank) {
+        if (!bank || !bank.meta || !bank.meta.coach_model) return MODEL_DEFAULT;
+        return MODEL_ROUTER[bank.meta.coach_model] || MODEL_DEFAULT;
+      }
 
       let _history         = [];   // messages array for current question
       let _currentQuestion = null;
@@ -1917,7 +1938,7 @@ Guidelines:
             'anthropic-dangerous-direct-browser-access': 'true',
           },
           body: JSON.stringify({
-            model:      MODEL,
+            model:      resolveModel(AppState.getBank()),
             max_tokens: MAX_TOKENS,
             system:     PromptBuilder.buildSystem(
                           AppState.getBank(),

@@ -101,6 +101,29 @@ Descriptive information about the bank. Displayed in the app UI and injected int
 | `description` | string | No | Injected into AI coach context |
 | `tags` | string[] | No | For future filtering/search |
 | `reference_sheet` | string\|null | No | Global reference text available for the full exam session. See [`meta.reference_sheet`](#metareference_sheet-field) below. |
+| `coach_model` | string | No | Route key controlling which AI model the coach uses. See [Model Routing](#model-routing) below. Omit for default (Haiku). |
+
+---
+
+## Model Routing
+
+The `meta.coach_model` field is an optional route key that controls which AI model the app uses for coaching on this bank. Bank authors set a semantic label; the app maps it to a model.
+
+| Route key | Model | Notes |
+|-----------|-------|-------|
+| *(absent or unknown)* | `claude-haiku-4-5` | Default — fast, low cost |
+| `trivia` | `claude-haiku-4-5` | |
+| `history` | `claude-haiku-4-5` | |
+| `civics` | `claude-haiku-4-5` | |
+| `ap_biology` | `claude-sonnet-4-5` | |
+| `ap_chemistry` | `claude-sonnet-4-5` | |
+| `ap_physics` | `claude-sonnet-4-5` | |
+| `ap_cs_principles` | `claude-sonnet-4-5` | |
+| `ap_cs_applied` | `claude-sonnet-4-5` | Future: agent SDK path |
+| `ap_calculus` | `claude-sonnet-4-5` | Future: bump to 4-6 for math reasoning |
+| `amateur_radio` | `claude-sonnet-4-5` | RF/electronics/regulations |
+
+The routing table lives in `CoachAPI` in `index.html`. Add new keys there when new subjects or models are introduced.
 
 ---
 
