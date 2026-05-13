@@ -1,8 +1,9 @@
-# Q-Primer
+# Q-Primer  ("Que-Prĭmmer")
+
 
 **An AI-coached study tool for multiple-choice exam preparation.**
 
-Q-Primer is a free, open-source study tool that helps people prepare for multiple-choice examinations by combining quiz practice with an AI-powered coaching conversation. It runs locally and entirely in your web browser — no software to install, no server required. A student opens a single webpage, loads a set of practice questions, and starts studying.
+Q-Primer is a free, open-source study tool that helps people prepare for multiple-choice examinations by combining quiz practice with an AI-powered coaching conversation. The quize tool runs locally and entirely in your web browser — no software to install, no server required. The optional AI coach makes API calls to Anthropics API using the users API key.  The free tier account should be sufficient; a study session typically costs a few penny's at most. To use this, a student opens a single webpage, loads a set of practice questions, and starts studying.
 
 ---
 
@@ -12,7 +13,7 @@ Q-Primer requires no installation, no server, and no build step. It is a single 
 
 **1. Get the files**
 
-Download or clone the repository:
+Download the index.html and a quiz file (in /banks), or clone the whole repository:
 ```
 git clone https://github.com/Tamooj/q-primer.git
 ```
@@ -20,17 +21,18 @@ Or use the GitHub **Code → Download ZIP** button and extract it anywhere on yo
 
 **2. Open the app**
 
-Open `index.html` directly in any modern browser (Chrome, Firefox, Edge, or Safari). You can do this by double-clicking the file in your file manager, or by dragging it into a browser window. No local web server is needed.
+Open `index.html` directly in any modern browser (Chrome, Firefox, Edge, or Safari). You can do this by double-clicking the file in your file manager, or by dragging it into a browser window. While a little space constrained, this should work just fine on most mobile devices too.
 
-Alternatively, the app is hosted on GitHub Pages at **https://tamooj.github.io/q-primer/** — no download required.
+Alternatively, the app is hosted on GitHub Pages at **https://tamooj.github.io/q-primer/** — and can be opened directly from there in your browser (no download required).
 
 **3. Load a question bank**
 
-Either drag a `.json` or `.zip` bank file from the `banks/` folder onto the drop zone, or paste a direct URL into the URL field and click Load. A 31-question sample for the FCC Amateur Radio General Class exam is included to get you started. Banks loaded by URL are remembered and reloaded automatically on your next visit.
+Either drag a question bank file from the `banks/` folder onto the drop zone, or paste a direct URL into the URL field and click Load. They quizes .zip files that  basically just a single .json of questions/answers, but the zip file allows the inclusion of figure images, which are needed by some quizes)
+There are a few sample quizzes provided for practice.  Feel free to submit your own - the file format is is described in the docs, and a simple assembly pythjon script is provided.  Banks loaded by URL are remembered locally and reloaded automatically on your next visit to save on typing.
 
 **4. Start studying**
 
-Enter your name and background (optional), add an API key if you have one, and click **Start Studying**. Your progress is saved automatically in your browser and will be waiting when you return.
+Enter your name and some background about you to help the AI coach give advice appropriate to your skillset (optional), add an API key if you have one, and click **Start Studying**. You have the option to get quiz question in sequential or random order. Your progress is saved automatically in your browser cache and will be waiting when you return.  
 
 ---
 
@@ -50,7 +52,7 @@ Instructions for obtaining an API key will be included in the full setup guide. 
 
 Practice questions come from a **question bank** — a structured file containing the complete pool of questions for a given exam, including all four answer choices and the correct answer for each. Question banks are plain text files in a documented format, which means teachers, subject matter experts, and community volunteers can create and share them.
 
-When a student answers a question, an AI coach (Anthropic's Claude) explains why the correct answer is correct, why each wrong answer is wrong, and engages in follow-up conversation if the student wants to go deeper. Critically, **the AI never generates the questions** — it only explains them. The question bank is the authoritative source; the AI is the tutor.
+When a student answers a question, an AI coach (Anthropic's Claude) explains why the correct answer is correct, why each wrong answer is wrong, and engages in follow-up conversation if the student wants to go deeper. Critically, **the AI never generates the questions** — it only explains them. The question bank is the authoritative source; the AI is just the tutor.
 
 The coach calibrates its explanations to a **student profile**: a short free-text description of the student's background and goals. A retired engineer studying ham radio regulations gets different explanations than a seventh-grader studying AP Computer Science. This profile is written by the student (or pre-populated by a teacher).
 
@@ -95,14 +97,6 @@ Teachers can include annotations in question banks that guide the AI's explanati
 
 **6. Where AI explanation breaks down**
 What types of questions or concepts are poorly served by text-based AI explanation? Should the tool flag these and direct students to other resources — videos, worked examples, lab time? What does your discipline-specific experience suggest about what students genuinely cannot learn from a text coaching conversation?
-
----
-
-## Question Banks
-
-Q-Primer ships with question banks for standardized exams. The initial bank targets the **FCC Amateur Radio General Class license exam** (2023–2027 question pool, 429 questions) in [`/banks`](banks/).
-
-Banks are either plain JSON files (text-only questions) or ZIP archives (questions with supporting figures, diagrams, or preamble reference materials). The format is documented in [`docs/01-question-bank-schema.md`](docs/01-question-bank-schema.md). Anyone can contribute a bank by following that guide; the `construction/` directory contains a build script and example staging directories.
 
 ---
 
