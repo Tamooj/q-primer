@@ -115,13 +115,13 @@ The `meta.coach_model` field is an optional route key that controls which AI mod
 | `trivia` | `claude-haiku-4-5` | |
 | `history` | `claude-haiku-4-5` | |
 | `civics` | `claude-haiku-4-5` | |
-| `ap_biology` | `claude-sonnet-4-5` | |
-| `ap_chemistry` | `claude-sonnet-4-5` | |
-| `ap_physics` | `claude-sonnet-4-5` | |
-| `ap_cs_principles` | `claude-sonnet-4-5` | |
-| `ap_cs_applied` | `claude-sonnet-4-5` | Future: agent SDK path |
+| `ap_biology` | `claude-sonnet-4-6` | |
+| `ap_chemistry` | `claude-sonnet-4-6` | |
+| `ap_physics` | `claude-sonnet-4-6` | |
+| `ap_cs_principles` | `claude-sonnet-4-6` | |
+| `ap_cs_applied` | `claude-sonnet-4-6` | Future: agent SDK path |
 | `ap_calculus` | `claude-sonnet-4-6` | Extended math reasoning |
-| `amateur_radio` | `claude-sonnet-4-5` | RF/electronics/regulations |
+| `amateur_radio` | `claude-sonnet-4-6` | RF/electronics/regulations |
 
 The routing table lives in `CoachAPI` in `index.html`. Add new keys there when new subjects or models are introduced.
 
