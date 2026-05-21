@@ -1837,7 +1837,15 @@ Guidelines:
 - When the student chose incorrectly, be direct about what misconception the distractor exploits.
 - Use plain language. Define technical terms on first use.
 - Use markdown: **bold** for key terms, \`code\` for values, formulas, and units.
-- For math, use Unicode notation (e.g. V², ×, Ω, μ, ≈, √) and \`code\` spans rather than LaTeX.`
+
+MATH FORMATTING — this app cannot render LaTeX. Never use LaTeX syntax. This means: no $...$ or $$...$$, no \\frac{}{}, no \\sqrt{}, no ^{} or _{} braces, no \\text{}, no \\times.
+
+Instead:
+- Write fractions inline: \`1 / (2π × f × C)\`
+- Use Unicode superscripts for exponents: 10⁶, 10⁻¹², V², x³
+- Use Unicode subscripts where needed: X_C, V_in, R₁
+- Use Unicode math symbols: × ÷ ≈ ≠ ≤ ≥ √ π Ω μ ∑ ∆
+- Show multi-step calculations as a sequence of \`code\` lines, one step per line`
         );
 
         return parts.join('\n\n');
