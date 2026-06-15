@@ -2,8 +2,7 @@
 
 **An AI-coached study tool for multiple-choice exam preparation.**
 
-Q-Primer is a free, open-source study tool that helps people prepare for multiple-choice examinations by combining quiz practice with an AI-powered coaching conversation. The quiz tool runs locally and entirely in your web browser — no software to install, no server required. The optional AI coach makes API calls to Anthropics API using the users API key. (https://platform.claude.com/login) 
-A free-tier Claude account should be sufficient; a study session typically costs a few penny's at most. To use this, a student opens a single webpage, loads a set of practice questions, and starts studying.
+Q-Primer is a free, open-source study tool that helps people prepare for multiple-choice examinations by combining quiz practice with an AI-powered coaching conversation. The quiz tool runs locally and entirely in your web browser — no software to install, no server required. The optional AI coach makes API calls to Anthropics API using the users API key. The almost-free-tier Claude account should be sufficient; a study session typically costs a few penny's at most. To use this, a student opens a single webpage, loads a set of practice questions, and starts studying.
 
 ---
 
@@ -13,17 +12,17 @@ Q-Primer requires no installation, no server, and no build step. It is a single 
 
 **1. Get the files**
 
-Download the index.html and a quiz file (in /banks), or clone the whole repository:
+Download the index.html and a quiz file (in /banks), or if you want to look at the code, clone the whole repository:
 ```
 git clone https://github.com/Tamooj/q-primer.git
 ```
 Or use the GitHub **Code → Download ZIP** button and extract it anywhere on your computer.
 
-**2. Open the app**
+**2. To run it, Open the app in a browser**
 
-Open `index.html` directly in any modern browser (Chrome, Firefox, Edge, or Safari). You can do this by double-clicking the file in your file manager, or by dragging it into a browser window. While a little space constrained, this should work just fine on most mobile devices too.
+Open `index.html` directly in any modern browser (Chrome, Firefox, Edge, or Safari). You can do this by double-clicking the file in your file manager, or by dragging it into a browser window. While a little space constrained, this should work just fine on most mobile devices too. (Note: I haven't tested this on iPhones yet, but it should work. Send bug reports to the Discussions section)
 
-Alternatively, the app is hosted on GitHub Pages at **https://tamooj.github.io/q-primer/** — and can be opened directly from there in your browser (no download required).
+Alternatively, the html app is available on these GitHub Pages at **https://tamooj.github.io/q-primer/** — and can be opened directly from there in your browser (no download required).
 
 **3. Load a question bank**
 
