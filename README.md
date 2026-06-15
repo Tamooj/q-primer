@@ -1,9 +1,9 @@
 # Q-Primer  ("Que-Prĭmmer")
 
-
 **An AI-coached study tool for multiple-choice exam preparation.**
 
-Q-Primer is a free, open-source study tool that helps people prepare for multiple-choice examinations by combining quiz practice with an AI-powered coaching conversation. The quize tool runs locally and entirely in your web browser — no software to install, no server required. The optional AI coach makes API calls to Anthropics API using the users API key.  The free tier account should be sufficient; a study session typically costs a few penny's at most. To use this, a student opens a single webpage, loads a set of practice questions, and starts studying.
+Q-Primer is a free, open-source study tool that helps people prepare for multiple-choice examinations by combining quiz practice with an AI-powered coaching conversation. The quiz tool runs locally and entirely in your web browser — no software to install, no server required. The optional AI coach makes API calls to Anthropics API using the users API key. (https://platform.claude.com/login) 
+A free-tier Claude account should be sufficient; a study session typically costs a few penny's at most. To use this, a student opens a single webpage, loads a set of practice questions, and starts studying.
 
 ---
 
